@@ -55,6 +55,17 @@
 using namespace std;
 using namespace vcg;
 
+// #define AVNER_ADD_IMAGE_WINDOW
+
+#ifdef AVNER_ADD_IMAGE_WINDOW
+
+#include "imageviewer.h"
+
+ImageViewer* imageviewer;
+
+#else
+#endif
+
 void MainWindow::updateRecentFileActions()
 {
     bool activeDoc = (bool) !mdiarea->subWindowList().empty() && mdiarea->currentSubWindow();
@@ -2198,6 +2209,8 @@ void MainWindow::saveProject()
 
 bool MainWindow::openProject(QString fileName)
 {
+    qDebug("BEG MainWindow::openProject()");
+    
     bool visiblelayer = layerDialog->isVisible();
     showLayerDlg(false);
 	globrendtoolbar->setEnabled(false);
@@ -2322,6 +2335,27 @@ GLA()->setDrawMode(GLW::DMPoints);*/
     saveRecentProjectList(fileName);
 	globrendtoolbar->setEnabled(true);
     showLayerDlg(visiblelayer || (meshDoc()->meshList.size() > 0));
+
+
+#ifdef AVNER_ADD_IMAGE_WINDOW
+    imageviewer = new ImageViewer;
+    QString imageFileName("/home/avner/avner/blenderReleated/test2a.png");
+    if(imageviewer->loadFile(imageFileName))
+    {
+        qDebug() << "Loaded the file: " << imageFileName;
+    }
+    else
+    {
+        // qDebug("Failed to load the file: " << imageFileName.toLatin1());
+    }
+
+    imageviewer->show();
+    
+    qDebug("END MainWindow::openProject()");
+#else
+#endif
+     
+    
     return true;
 }
 
@@ -2860,6 +2894,7 @@ bool MainWindow::importMesh(QString fileName,bool isareload)
         }
     }// end foreach file of the input list
     GLA()->Logf(0,"All files opened in %i msec",allFileTime.elapsed());
+    GLA()->Logf(0,"foo1");
 
     this->currentViewContainer()->resetAllTrackBall();
 

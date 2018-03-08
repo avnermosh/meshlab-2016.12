@@ -10,3 +10,7 @@ SOURCES       = edit_sample_factory.cpp \
 TARGET        = sampleedit
 
 RESOURCES     = sampleedit.qrc
+
+# Avner
+# CONFIG += console
+CONFIG += debug

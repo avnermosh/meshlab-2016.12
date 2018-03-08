@@ -953,6 +953,7 @@ void MLRenderingSelectionParametersFrame::initGui()
 {
     setAutoFillBackground(true);
     QGridLayout* layout = new QGridLayout();
+
     QLabel* vertlab = new QLabel("Selected Vertex",this);
     QFont boldfont;
     boldfont.setBold(true);
@@ -976,7 +977,11 @@ void MLRenderingSelectionParametersFrame::initGui()
     setMinimumSize(layout->sizeHint());
     setLayout(layout);
     showNormal();
-    adjustSize();   
+    adjustSize();
+
+    qDebug() << "foo1";
+    // qDebug() << "smoothvertact->isChecked(): " << smoothvertact->isChecked();
+
 }
 
 
@@ -1484,11 +1489,15 @@ void MLRenderingGlobalToolbar::initGui()
 	MLRenderingSolidAction* smoothsolidact = new MLRenderingSolidAction(this);
 	smoothsolidact->setChecked(false);
 	MLRenderingPerVertexNormalAction* smoothvertact = new MLRenderingPerVertexNormalAction(MLRenderingData::PR_SOLID,this);
-	smoothvertact->setChecked(false);
+   // Avner
+	// smoothvertact->setChecked(false);
+	smoothvertact->setChecked(true);
 	MLRenderingPerFaceNormalAction* smoothfaceact = new MLRenderingPerFaceNormalAction(MLRenderingData::PR_SOLID, this);
-	smoothfaceact->setChecked(false);
+   smoothfaceact->setChecked(false);
 	MLRenderingNoShadingAction* solidnoshad = new MLRenderingNoShadingAction(MLRenderingData::PR_SOLID, this);
-	solidnoshad->setChecked(false);
+   // avner
+	// solidnoshad->setChecked(false);
+	solidnoshad->setChecked(true);
 
 	_smoothglobact = new MLRenderingGlobalAction(smoothvertact->text(), smoothvertact->icon(), this);
 	_smoothglobact->addMainAction(smoothsolidact);
@@ -1498,10 +1507,14 @@ void MLRenderingGlobalToolbar::initGui()
 	_smoothglobact->setCheckable(true);
 	_solidactgroup->addAction(_smoothglobact);
 
+   // Avner - we want to disable flatfaceact and enable smoothvertact???
 	MLRenderingSolidAction* flatsolidact = new MLRenderingSolidAction(this);
 	flatsolidact->setChecked(false);
 	MLRenderingPerVertexNormalAction* flatvertact = new MLRenderingPerVertexNormalAction(MLRenderingData::PR_SOLID, this);
-	flatvertact->setChecked(false);
+   // avner
+	// flatvertact->setChecked(false);
+	flatvertact->setChecked(true);
+
 	MLRenderingPerFaceNormalAction* flatfaceact = new MLRenderingPerFaceNormalAction(MLRenderingData::PR_SOLID, this);
 	flatfaceact->setChecked(false);
 
@@ -1513,7 +1526,7 @@ void MLRenderingGlobalToolbar::initGui()
 	_flatglobact->setCheckable(true);
 	_solidactgroup->addAction(_flatglobact);
 	addActions(_solidactgroup->actions());
-
+   
 	/*MLRenderingPerVertexColorAction* solidvertvertcol = new MLRenderingPerVertexColorAction(MLRenderingData::PR_SOLID, this);
 	solidvertvertcol->setChecked(true);
 	MLRenderingPerFaceColorAction* solidfacevertcol = new MLRenderingPerFaceColorAction(this);

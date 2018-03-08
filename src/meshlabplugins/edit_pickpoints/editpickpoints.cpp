@@ -69,7 +69,10 @@ const QString EditPickPointsPlugin::Info()
 //called
 void EditPickPointsPlugin::Decorate(MeshModel &mm, GLArea *gla, QPainter *painter)
 {
-	//qDebug() << "Decorate " << mm.fileName.c_str() << " ..." << mm.cm.fn;
+	// qDebug() << "Decorate " << mm.fileName.c_str() << " ..." << mm.cm.fn;
+	// qDebug() << "Decorate " << " ..." << mm;
+	// qDebug() << "Decorate " << " ..." << mm.cm;
+	// qDebug() << "Decorate " << " ..." << mm.cm.fn;
 
 	if (gla != glArea || mm.cm.fn < 1)
 	{
@@ -100,6 +103,7 @@ void EditPickPointsPlugin::Decorate(MeshModel &mm, GLArea *gla, QPainter *painte
 
 				//let the dialog know that this was the pointed picked incase it wants the information
 		bool picked = Pick<Point3m>(currentMousePosition.x(), currentMousePosition.y(), pickedPoint);
+      
 		pickPointsDialog->selectOrMoveThisPoint(pickedPoint);
 
 		moveSelectPoint = false;

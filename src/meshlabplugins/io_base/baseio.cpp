@@ -132,6 +132,20 @@ bool BaseMeshIOPlugin::open(const QString &formatName, const QString &fileName, 
   }
   else	if( (formatName.toUpper() == tr("OBJ")) || (formatName.toUpper() == tr("QOBJ")) )
     {
+
+
+#ifdef AVNER_CHANGES
+        // TBD avner add here
+            http://vcg.isti.cnr.it/vcglib/adjacency.html
+            vcg::tri::UpdateTopology::VertexFace(MeshType & m).
+#else
+                // take care of EnableFFAdjacency in here? or pickpointsDialog.cpp:99 ?? or pickpointsDialog.cpp:734??
+            // #error 1
+#endif
+         
+
+
+            
     tri::io::ImporterOBJ<CMeshO>::Info oi;
         oi.cb = cb;
         if (!tri::io::ImporterOBJ<CMeshO>::LoadMask(filename.c_str(), oi))

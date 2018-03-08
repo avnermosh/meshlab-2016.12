@@ -47,6 +47,15 @@
 #include "ui_congratsDialog.h"
 
 
+#ifdef AVNER_ADD_IMAGE_VIEWER
+#include "imagelistmodel.h"
+#include "imageviewer.h"
+#include <QSplitter>
+#include <QListView>
+#else
+#endif
+ 
+
 
 QProgressBar *MainWindow::qb;
 
@@ -135,6 +144,91 @@ MainWindow::MainWindow()
 	//qb->reset();
 	connect(this, SIGNAL(updateLayerTable()), this, SLOT(updateLayerDialog()));
 	connect(layerDialog, SIGNAL(removeDecoratorRequested(QAction*)), this, SLOT(switchOffDecorator(QAction*)));
+
+   
+#ifdef AVNER_ADD_IMAGE_VIEWER
+    m_selectedPointViewerSplitter = new QSplitter;
+
+    // order imageList, imageViewer vertically
+    m_selectedPointViewerSplitter->setOrientation(Qt::Vertical);
+    
+    
+    QString m_selectedPointViewerSplitterPtrStr = QString("0x%1").arg((quintptr)m_selectedPointViewerSplitter, 
+                                         QT_POINTER_SIZE * 2, 16, QChar('0'));
+    qDebug() << "m_selectedPointViewerSplitterPtrStr: " << m_selectedPointViewerSplitterPtrStr;
+    
+    QListView *imageList = new QListView(m_selectedPointViewerSplitter);
+
+    // imageList->setModel(new ImageListModel({ "/home/avner/avner/images/right01.jpg", "/home/avner/avner/images/right02.jpg" }, {}, imageList));
+
+    imageList->setModel(new ImageListModel({}, {}, imageList));
+
+    // We want our list to show data vertically
+    imageList->setFlow(QListView::TopToBottom);
+    QListView::Flow flow = imageList->flow();
+    qDebug() << "flow: " << flow;
+
+    // imageList->setResizeMode(QListView::Adjust);
+    QListView::ResizeMode resizeMode = imageList->resizeMode();
+    qDebug() << "resizeMode: " << resizeMode;
+    
+    // We tell the list view to show our icon, this mode will call the data function
+    // of our model with the role : DecorationRole.
+    // imageList->setViewMode(QListView::IconMode);
+    imageList->setViewMode(QListView::ListMode);
+    
+    // We allow only one selection at a time in the list
+    imageList->setSelectionMode(QListView::SingleSelection);
+
+ 
+    // Add imageviewer to m_selectedPointViewerSplitter
+    ImageViewer *imageViewer = new ImageViewer();
+    m_selectedPointViewerSplitter->addWidget(imageViewer);
+    
+    // QSplitter set size of second element 3024x4032
+    
+    // imageViewer->sizePolicy().setVerticalStretch(1);
+    // imageList->sizePolicy().setVerticalStretch(2);
+
+    imageViewer->sizePolicy().setVerticalStretch(1);
+    imageList->sizePolicy().setVerticalStretch(5);
+    
+    QObject::connect(imageList->selectionModel(), &QItemSelectionModel::selectionChanged, [imageList, imageViewer] {
+        QModelIndex selectedIndex = imageList->selectionModel()->selectedIndexes().first();
+        // We use our custom role here to retieve the large image using the selected
+        // index.
+        QString filename = selectedIndex.data(Qt::DisplayRole).value<QString>();
+        imageViewer->loadFile(filename);
+    });
+
+    m_selectedPointViewerSplitter->setStretchFactor( 0, 0 );
+    m_selectedPointViewerSplitter->setStretchFactor( 1, 1 );
+
+    m_selectedPointViewerSplitter->setWindowTitle("Images");
+  
+    // Create the button, make "this" the parent
+    m_button = new QPushButton("My Button", this);
+    // set size and location of the button
+    m_button->setGeometry(QRect(QPoint(100, 100),
+    QSize(200, 50)));
+ 
+    // Connect button signal to appropriate slot
+    connect(m_button, SIGNAL (released()), this, SLOT (handleButton()));
+
+    m_imageDockWidget = new QDockWidget;
+    const QString name("SelectedPoint");
+    m_imageDockWidget->setObjectName(name);
+    m_imageDockWidget->setWindowTitle(name);
+    m_imageDockWidget->setWidget(m_selectedPointViewerSplitter);
+    
+    m_imageDockWidget->setMinimumWidth(200);
+    
+    // addDockWidget(Qt::BottomDockWidgetArea, m_imageDockWidget);
+    addDockWidget(Qt::LeftDockWidgetArea, m_imageDockWidget);
+#else
+#endif
+    
+
 }
 
 MainWindow::~MainWindow()

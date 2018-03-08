@@ -28,6 +28,7 @@
 
 #include <QFileDialog>
 #include <math.h>
+#include <vector>
 
 #include <common/meshmodel.h>
 #include <meshlab/stdpardialog.h>
@@ -41,6 +42,363 @@
 #include <QGLWidget>
 
 using namespace vcg;
+
+#define AVNER_PP
+
+#ifdef AVNER_PP
+// /mnt/avner/softwarelib/OpenCV-2.4.3/modules/calib3d/include/opencv2/calib3d/calib3d.hpp
+#include "opencv2/core/core.hpp"
+#include "opencv2/imgproc/imgproc.hpp"
+#include "opencv2/calib3d/calib3d.hpp"
+#include "opencv2/highgui/highgui.hpp"
+ 
+#include <iostream>
+#include <string>
+
+#define ADD_HUGIN
+
+#ifdef ADD_HUGIN
+#include <panodata/Panorama.h>
+#include <panotools/PanoToolsInterface.h>
+#include "../../meshlab/mainwindow.h"
+#include "../../meshlab/imagelistmodel.h"
+#else
+#endif
+
+
+// /mnt/avner/softwarelib/boost/boost_1_59_0/boost/filesystem.hpp
+#include <boost/filesystem.hpp>
+#include <QScrollArea>
+
+std::vector<cv::Point2f> Generate2DPoints();
+std::vector<cv::Point3f> Generate3DPoints();
+
+
+// Try2
+#include "../../meshlab/imageviewer.h"
+ImageViewer* imageviewer2;
+
+// Try1
+std::vector<std::string> textures2;
+QLabel topLevelLabel;
+QScrollArea scrollArea;
+bool firstTime = false;
+
+namespace
+{
+    bool findOtherVertexInAdjacentFaceWithSameMaterial(CMeshO::FaceType* face,
+        const int materialIndex,
+        CMeshO::FaceType*& otherFace,
+        int& otherVertexIndex)
+    {
+    
+        qDebug() << "Beg findOtherVertexInAdjacentFaceWithSameMaterial";
+        qDebug() << "face2: " << (CMeshO::FaceType*)face;
+        for (int edgeIndex = 0; edgeIndex < 3; edgeIndex++)
+        {
+            qDebug() << "edgeIndex: " << edgeIndex;
+            otherFace = face->FFp(edgeIndex);
+            qDebug() << "otherFace: " << (void*)otherFace;
+
+            bool cond0 = (otherFace != NULL);
+            qDebug() << "cond0: " << cond0;
+
+            bool cond1 = ((void*)otherFace != (void*)face);
+            qDebug() << "cond1: " << cond1;
+
+            bool cond2 = ((void*)otherFace == (void*)face);
+            qDebug() << "cond2: " << cond2;
+
+            if (cond1 && cond1)
+            // if(otherFace != NULL)
+            {
+                int otherMaterialIndex = otherFace->WT(0).n();
+                if (materialIndex == otherMaterialIndex)
+                {
+                    // found the matching face
+                    qDebug() << "edgeIndex: " << edgeIndex;
+
+                    // FFi(i): the index of edge that corresponds to i-th edge of f in the pointed face
+                    int otherEdgeIndex = face->FFi(edgeIndex);
+                    qDebug() << "otherEdgeIndex: " << otherEdgeIndex;
+                    otherVertexIndex = (otherEdgeIndex + 2) % 3;
+                    qDebug() << "otherVertexIndex: " << otherVertexIndex;
+
+                    qDebug() << "otherFace->WT(0) u,v: " << otherFace->WT(0).u() << ", " << otherFace->WT(0).v();
+                    qDebug() << "otherFace->WT(1) u,v: " << otherFace->WT(1).u() << ", " << otherFace->WT(1).v();
+                    qDebug() << "otherFace->WT(2) u,v: " << otherFace->WT(2).u() << ", " << otherFace->WT(2).v();
+
+                    qDebug() << "otherFace->P(0) x,y,z: " << otherFace->P(0).X() << ", " << otherFace->P(0).Y() << ", " << otherFace->P(0).Z();
+                    qDebug() << "otherFace->P(1) x,y,z: " << otherFace->P(1).X() << ", " << otherFace->P(1).Y() << ", " << otherFace->P(1).Z();
+                    qDebug() << "otherFace->P(2) x,y,z: " << otherFace->P(2).X() << ", " << otherFace->P(2).Y() << ", " << otherFace->P(2).Z();
+
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    bool calcPointAttributes2(CMeshO::FaceType* face,
+        const int materialIndex,
+        const Point3m& addedPoint3d,
+        ObjTexCoord2& addedPoint_texCoords)
+    {
+        qDebug() << "Beg calcPointAttributes2";
+        qDebug() << "face1: " << (CMeshO::FaceType*)face;
+        // TBD - calc u,v of added point
+        // use ~/avner/constructionOverlay/tmp/calcTransformationMat.py
+        //
+        qDebug() << "face->WT(0) u,v: " << face->WT(0).u() << ", " << face->WT(0).v();
+        qDebug() << "face->WT(1) u,v: " << face->WT(1).u() << ", " << face->WT(1).v();
+        qDebug() << "face->WT(2) u,v: " << face->WT(2).u() << ", " << face->WT(2).v();
+
+        qDebug() << "face->P(0) x,y,z: " << face->P(0).X() << ", " << face->P(0).Y() << ", " << face->P(0).Z();
+        qDebug() << "face->P(1) x,y,z: " << face->P(1).X() << ", " << face->P(1).Y() << ", " << face->P(1).Z();
+        qDebug() << "face->P(2) x,y,z: " << face->P(2).X() << ", " << face->P(2).Y() << ", " << face->P(2).Z();
+
+        /////////////////////////////
+        // Find the 4th point
+        // we need 4 3d points, and their equivalent 2d points, in order to computer the transformation matrix
+        // the transformation matrix is then used to project from the selected 3d point to 2d 
+        /////////////////////////////
+
+        CMeshO::FaceType* otherFace;
+        int otherVertexIndex;
+        if (findOtherVertexInAdjacentFaceWithSameMaterial(face, materialIndex, otherFace, otherVertexIndex))
+        {
+            qDebug() << "otherFace1: " << (void*)otherFace;
+            qDebug() << "otherVertexIndex1: " << otherVertexIndex;
+            // x,y,z
+            qDebug() << "otherFace->P(otherVertexIndex) x,y,z: " << otherFace->P(otherVertexIndex).X()
+                     << ", " << otherFace->P(otherVertexIndex).Y()
+                     << ", " << otherFace->P(otherVertexIndex).Z();
+            // u,v
+            qDebug() << "otherFace->WT(otherVertexIndex) u,v: " << otherFace->WT(otherVertexIndex).u()
+                     << ", " << otherFace->WT(otherVertexIndex).v();
+
+            /////////////////////////////
+            // Find the transformation matrix
+            /////////////////////////////
+
+            // https://github.com/daviddoria/Examples/blob/master/c%2B%2B/OpenCV/SolvePNP/SolvePNP.cxx
+
+            std::vector<cv::Point2f> imagePoints;
+            imagePoints.push_back(cv::Point2f(face->WT(0).u(), face->WT(0).v()));
+            imagePoints.push_back(cv::Point2f(face->WT(1).u(), face->WT(1).v()));
+            imagePoints.push_back(cv::Point2f(face->WT(2).u(), face->WT(2).v()));
+            imagePoints.push_back(cv::Point2f(otherFace->WT(otherVertexIndex).u(), otherFace->WT(otherVertexIndex).v()));
+
+            std::vector<cv::Point3f> objectPoints;
+            objectPoints.push_back(cv::Point3f(face->P(0).X(), face->P(0).Y(), face->P(0).Z()));
+            objectPoints.push_back(cv::Point3f(face->P(1).X(), face->P(1).Y(), face->P(1).Z()));
+            objectPoints.push_back(cv::Point3f(face->P(2).X(), face->P(2).Y(), face->P(2).Z()));
+            objectPoints.push_back(cv::Point3f(otherFace->P(otherVertexIndex).X(),
+                otherFace->P(otherVertexIndex).Y(),
+                otherFace->P(otherVertexIndex).Z()));
+
+            cv::Mat cameraMatrix(3, 3, cv::DataType<double>::type);
+            cv::setIdentity(cameraMatrix);
+
+            float fx = 1.0;
+            float h = 10000.0;
+            float w = 10000.0;
+
+            // test.at<cv::Vec2f>[y][x][0] = 1.0
+            double val1 = fx * w;
+            std::cout << "val1: " << val1 << std::endl;
+
+            cameraMatrix.at<double>(0, 0) = val1;
+            cameraMatrix.at<double>(0, 2) = 0.5 * (w - 1);
+            cameraMatrix.at<double>(1, 1) = fx * w;
+            cameraMatrix.at<double>(1, 2) = 0.5 * (h - 1);
+            cameraMatrix.at<double>(2, 2) = 1.0;
+
+            std::cout << "cameraMatrix: " << cameraMatrix << std::endl;
+            // TBD populate cameraMatrix
+            // K = np.float64([[fx*w, 0, 0.5*(w-1)],
+            //                 [0, fx*w, 0.5*(h-1)],
+            //                 [0.0,0.0,      1.0]])
+
+            cv::Mat distCoeffs(4, 1, cv::DataType<double>::type);
+            distCoeffs.at<double>(0) = 0;
+            distCoeffs.at<double>(1) = 0;
+            distCoeffs.at<double>(2) = 0;
+            distCoeffs.at<double>(3) = 0;
+
+            cv::Mat rvec(3, 1, cv::DataType<double>::type);
+            cv::Mat tvec(3, 1, cv::DataType<double>::type);
+
+            cv::solvePnP(objectPoints, imagePoints, cameraMatrix, distCoeffs, rvec, tvec);
+
+            std::vector<cv::Point3f> points3d_new;
+            qDebug() << "point3d_new x,y,z: " << addedPoint3d[0] << " " << addedPoint3d[1] << " " << addedPoint3d[2];
+            points3d_new.push_back(cv::Point3f(addedPoint3d[0], addedPoint3d[1], addedPoint3d[2]));
+
+            std::vector<cv::Point2f> points2d_new;
+            cv::projectPoints(points3d_new, rvec, tvec, cameraMatrix, distCoeffs, points2d_new);
+            std::cout << "added point: " << points3d_new[0]
+                      << " Projected to " << points2d_new << std::endl;
+
+            cv::Point2f point2d_new = points2d_new[0];
+            std::cout << "point2d_new: " << point2d_new.x << " " << point2d_new.y << std::endl;
+            addedPoint_texCoords.u = point2d_new.x;
+            addedPoint_texCoords.v = point2d_new.y;
+        }
+        return true;
+    }
+
+#ifdef AVNER_ADD_IMAGE_VIEWER
+
+    bool mapPointFromPanoramaToImages(const int materialIndex,
+                                      const QPointF& qPointF,
+                                      std::list<std::string>& filenames,
+                                      std::list<QPointF>& qPointFs)
+{
+    qDebug() << "Beg mapPointFromPanoramaToImages()";
+    qDebug() << "qPointF2: " << qPointF;
+
+#ifdef ADD_HUGIN
+
+        std::string textureName = textures2[materialIndex];
+        // room1/wall1/wall_fused.jpg
+        qDebug() << "textureName0: " << textureName.c_str();
+
+        // room1/wall1/wall_fused.jpg -> room1/wall1/
+        // "/home/avner/avner/constructionOverlay/data/3543_W18_shimi/mainHouse/" + room1/wall1/ + "wall.pto" -> "room1/wall1/wall.pto"
+
+        boost::filesystem::path p(textureName.c_str());
+        boost::filesystem::path dir = p.parent_path();
+        std::string dir1 = dir.string();
+        qDebug() << "dir: " << dir1.c_str();
+
+        std::string panoFilename1;
+        // panoFilename1 = std::string("/home/avner/avner/constructionOverlay/data/3543_W18_shimi/mainHouse/") +
+        //                std::string(dir1.c_str()) +
+        //                std::string("/wall.pto");
+
+        panoFilename1 = std::string("/home/avner/avner/constructionOverlay/data/3543_W18_shimi/mainHouse/room1/") +
+                       std::string(dir1.c_str()) +
+                       std::string("/wall.pto");
+        
+        qDebug() << "panoFilename1: " << panoFilename1.c_str();
+
+        // // RemoveME:
+        // return true;
+
+    std::string panoFilename;
+    panoFilename = panoFilename1;
+    
+    std::cout << "panoFilename: " << panoFilename << std::endl;
+    qDebug() << "foo13";
+
+    HuginBase::Panorama pano2;
+    std::ifstream prjfile(panoFilename);
+    if (!prjfile.good())
+    {
+        std::cerr << "could not open script : " << panoFilename << std::endl;
+        return 1;
+    }
+
+    
+    pano2.setFilePrefix(hugin_utils::getPathPrefix(panoFilename));
+
+    AppBase::DocumentData::ReadWriteError err = pano2.readData(prjfile);
+    if (err != AppBase::DocumentData::SUCCESSFUL)
+    {
+        std::cerr << "error while parsing panos tool script: " << panoFilename << std::endl;
+        std::cerr << "AppBase::DocumentData::ReadWriteError code: " << err << std::endl;
+        return false;
+    }
+
+    int left = pano2.getOptions().getROI().left();
+    int right = pano2.getOptions().getROI().right();
+    int top = pano2.getOptions().getROI().top();
+    int bottom = pano2.getOptions().getROI().bottom();
+    std::cout << "ROI (left, right, top, bottom) " << left
+              << " " << right
+              << " " << top
+              << " " << bottom
+              << std::endl ;
+
+    std::cout << "pano2.getNrOfImages(): " << pano2.getNrOfImages() << std::endl;
+
+    filenames.clear();
+    qPointFs.clear();
+    int numThumbnails = 0;
+    
+    for(size_t imageIndex=0; imageIndex<pano2.getNrOfImages(); imageIndex++)
+    {
+        std::string fileName(pano2.getImage(imageIndex).getFilename());
+        std::cout << "fileName: " << fileName << std::endl;
+
+        // project qPointF to image. check if it falls inside the image
+        HuginBase::PTools::Transform trafo;
+        trafo.createTransform(pano2.getSrcImage(imageIndex), pano2.getOptions());
+
+        double xin2 = qPointF.x() + left;
+        double yin2 = qPointF.y() + top;
+        double xout, yout;
+        trafo.transformImgCoord(xout, yout, xin2, yin2);
+
+        QPointF qPointFout(xout, yout);
+        std::cout << "xout, yout: " << xout
+                  << " " << yout << std::endl;
+
+        if (pano2.getImage(imageIndex).isInside(vigra::Point2D(int(xout), int (yout))))
+        { 
+            std::cout << "Inside" << std::endl;
+
+            // TBD
+            // add (xout, yout) into the thumbnail info, so it could be drawn on imageViewer
+            // when the thumbnail is selected ???
+            
+            // Add to list of filenames
+            filenames.push_back(fileName);
+            qPointFs.push_back(qPointFout);
+            numThumbnails++;
+            
+        }
+        else
+        {
+            std::cout << "Outside" << std::endl;
+        }
+        
+    };
+
+    {
+        std::stringstream ss;
+        std::list<std::string>::iterator it; // same as: const int* it
+        for (it = filenames.begin(); it != filenames.end(); ++it) ss << ' ' << *it;
+        std::cout << "filenames: " << ss.str() << std::endl;
+    }
+
+    {
+        std::stringstream ss;
+        std::list<QPointF>::iterator it; // same as: const int* it
+        for (it = qPointFs.begin(); it != qPointFs.end(); ++it)
+        {
+            QPointF qPointF = *it;
+            ss << ' ' << qPointF.x() << ", " << qPointF.y();
+        }
+        std::cout << "qPointFs: " << ss.str() << std::endl;
+    }
+    
+#else
+#endif
+    
+    
+    return true;
+}
+#else
+#endif
+    
+}
+
+#else
+#endif
+ 
+
 
 class GetClosestFace
 {
@@ -331,6 +689,9 @@ void PickPointsDialog::recordNextPointForUndo()
 }
 
 void PickPointsDialog::selectOrMoveThisPoint(Point3m point) {
+
+    // TBD: move addImageWindow to end of this function
+    
 	qDebug() << "point is: " << point[0] << " " << point[1] << " " << point[2];
 
 	//the item closest to the given point
@@ -365,6 +726,56 @@ void PickPointsDialog::selectOrMoveThisPoint(Point3m point) {
 		//qDebug() << "Try to move: " << closestItem->getName();
 	}
 
+
+
+
+#ifdef AVNER_PP
+   //avner added - should be done in addPoint??
+   meshModel->cm.face.EnableFFAdjacency();
+   // vcg::tri::UpdateTopology<CMeshO>::FaceFace(meshModel);
+   meshModel->updateDataMask(MeshModel::MM_FACEFACETOPO);
+   tri::UpdateTopology<CMeshO>::FaceFaceFromTexCoord(meshModel->cm);
+   
+	CMeshO::FaceType *face = 0;
+	if (NULL != meshModel)
+	{
+		face = getClosestFace->getFace(point);
+		if (NULL == face)
+      {
+			qDebug() << "no face found for point.";
+      }
+      else
+      {
+			qDebug() << "face: " << face;
+			qDebug() << "face material index0: " << face->WT(0).n();
+			qDebug() << "face material index1: " << face->WT(1).n();
+			qDebug() << "face material index2: " << face->WT(2).n();
+			// qDebug() << "face->WT(0) u,v: " << face->WT(0).u() << ", " << face->WT(0).v();
+			// qDebug() << "face->WT(1) u,v: " << face->WT(1).u() << ", " << face->WT(1).v();
+			// qDebug() << "face->WT(2) u,v: " << face->WT(2).u() << ", " << face->WT(2).v();
+
+         ObjTexCoord2 addedPoint_texCoords;
+         const int materialIndex = face->WT(0).n();
+         qDebug() << "textures2.size(): " << textures2.size();
+
+         if ((0 <= materialIndex) && (materialIndex < textures2.size()))
+         {
+             std::string textureName = textures2[materialIndex];
+             qDebug() << "textureName: " << textureName.c_str();
+
+             calcPointAttributes2(face, materialIndex, point, addedPoint_texCoords);
+         }
+
+         qDebug() << "materialIndex: " << materialIndex;
+         qDebug() << "addedPoint_texCoords (u,v): " << addedPoint_texCoords.u << ", " << addedPoint_texCoords.v;
+
+         addImageWindow(textures2, materialIndex, addedPoint_texCoords);
+         
+      }
+   }   
+#else
+#endif
+   
 }
 
 void PickPointsDialog::redrawPoints()
@@ -384,13 +795,185 @@ bool PickPointsDialog::drawNormalAsPin()
 	return ui.pinRadioButton->isChecked();
 }
 
-void PickPointsDialog::addPoint(Point3m &point, QString &name, bool present)
+void PickPointsDialog::updateThumbnails(std::list<std::string> filenames, std::list<QPointF>& qPointFs)
 {
-	//bool result = GLPickTri<CMeshO>::PickNearestFace(currentMousePosition.x(),gla->height()-currentMousePosition.y(),
+    qDebug() << "Beg updateThumbnails()";
+
+    {
+        std::stringstream ss;
+        std::list<std::string>::iterator it; // same as: const int* it
+        for (it = filenames.begin(); it != filenames.end(); ++it) ss << ' ' << *it;
+        std::cout << "filenames: " << ss.str() << std::endl;
+    }
+
+    {
+        const char* className0 = parentPlugin->metaObject()->className();
+        qDebug("className0: %s", className0);
+    }
+
+    foreach (QWidget *widget, QApplication::topLevelWidgets()) {
+        const char* className0 = widget->metaObject()->className();
+        if(std::string(className0) == std::string("MainWindow"))
+        {
+            qDebug("className000: %s", className0);
+
+            // https://justcheckingonall.wordpress.com/2013/11/27/get-mainwindow-qt/
+            QSplitter *selectedPointViewerSplitter = ((MainWindow*)widget)->m_selectedPointViewerSplitter;
+            // QString selectedPointViewerSplitterPtrStr = QString("0x%1").arg((quintptr)selectedPointViewerSplitter, 
+            //                                                 QT_POINTER_SIZE * 2, 16, QChar('0'));
+            // qDebug() << "selectedPointViewerSplitterPtrStr: " << selectedPointViewerSplitterPtrStr;
+
+            
+            int numWidgetsInSplitter = selectedPointViewerSplitter->count();
+            // qDebug("numWidgetsInSplitter: %d", numWidgetsInSplitter);
+
+            for (int i = 0; i < numWidgetsInSplitter; i++)
+            {
+                const char* className0 = selectedPointViewerSplitter->widget(i)->metaObject()->className();
+                qDebug("className1111111111: %s", className0);
+            }
+
+            QListView* imageList0 = (QListView*)selectedPointViewerSplitter->widget(0);
+            std::list<QString> filenames2;
+            std::list<QPointF> qPointFs2;
+            // for (const std::string &s : filenames, const QPointF &qPointF : qPointFs)
+            // {
+            //     QString a1 = QString::fromStdString(s);
+            //     filenames2.push_back(a1);
+            //     // qPointFs2.push_back(QPointF(1,2));
+            //     qPointFs2.push_back(qPointF);
+            // }
+
+            auto iter = filenames.begin();
+            auto iterPointsF = qPointFs.begin();
+
+            // Add sanity check that filenames, qPointFs have the same size
+            while (iter != filenames.end())
+            {
+                QString a1 = QString::fromStdString(*iter);
+                filenames2.push_back(a1);
+                // qPointFs2.push_back(QPointF(1,2));
+                qPointFs2.push_back(*iterPointsF);
+
+                ++iter;
+                ++iterPointsF;
+            }
+
+            imageList0->setModel(new ImageListModel(filenames2, qPointFs2, imageList0));
+
+            // We connect to the signal emitted when the selection is changed
+            // to update the imageViewer.
+            ImageViewer *imageViewer0 =  (ImageViewer*)selectedPointViewerSplitter->widget(1);
+            QObject::connect(imageList0->selectionModel(), &QItemSelectionModel::selectionChanged, [imageList0, imageViewer0] {
+                    QModelIndex selectedIndex = imageList0->selectionModel()->selectedIndexes().first();
+                    QString filename = selectedIndex.data(Qt::DisplayRole).value<QString>();
+                    qDebug() << "filename: " << filename;
+
+                    QPointF qPointF = selectedIndex.data(ImageListModel::PointRole).value<QPointF>();
+                    qDebug() << "qPointF: " << qPointF;
+
+                    
+                    imageViewer0->loadFile(filename);
+                    int imageWidth;
+                    int imageHeight;
+                    imageViewer0->drawMetadata(qPointF, imageWidth, imageHeight);
+                    
+                });
+            imageList0->setCurrentIndex(imageList0->model()->index(0, 0));
+ 
+            
+        }
+    }
+}
+
+bool PickPointsDialog::addImageWindow(const std::vector<std::string>& textures2,
+                                      const int materialIndex,
+                                      const ObjTexCoord2& addedPoint_texCoords)
+{
+    qDebug() << "Beg PickPointsDialog::addImageWindow()";
+
+    //////////////////////////////////////////////
+    // Get imageWidth, imageHeight of the stitched image
+    //////////////////////////////////////////////
+
+    std::string textureName = textures2[materialIndex];
+    qDebug() << "textureName0: " << textureName.c_str();
+
+    QString imageFileName;
+    // imageFileName = QString(textureName.c_str());
+    // imageFileName = QString("/home/avner/avner/constructionOverlay/data/3543_W18_shimi/mainHouse/") + QString(textureName.c_str());
+    imageFileName = QString("/home/avner/avner/constructionOverlay/data/3543_W18_shimi/mainHouse/room1/") + QString(textureName.c_str());
+    // imageFileName = QString(textureName.c_str());
+    
+    qDebug() << "imageFileName: " << imageFileName;
+
+    imageviewer2 = new ImageViewer;
+
+    if (imageviewer2->loadFile(imageFileName))
+    {
+        qDebug() << "Loaded the file: " << imageFileName;
+    }
+    else
+    {
+        qDebug() << "Failed to load the file: " << imageFileName;
+    }
+
+    // Get imageWidth, imageHeight of the stitched image
+    QPointF qPointF(addedPoint_texCoords.u, addedPoint_texCoords.v);
+    int imageWidth;
+    int imageHeight;
+    imageviewer2->drawMetadata(qPointF, imageWidth, imageHeight);
+
+    qDebug() << "imageWidth: " << imageWidth;
+    qDebug() << "imageHeight: " << imageHeight;
+
+    // imageviewer2->show();
+
+
+    ////////////////////////////////////////////
+    // Overlay rectangle and dot on the image
+    ////////////////////////////////////////////
+
+    // Map qPointF2 from panorama to the images
+    std::list<std::string> filenames;
+    std::list<QPointF> qPointFs;
+    QPointF qPointF2(qPointF.x() * imageWidth, (1.0 - qPointF.y()) * imageHeight);
+    if (!mapPointFromPanoramaToImages(materialIndex, qPointF2, filenames, qPointFs))
+    {
+        std::cerr << "Failed to map point from panorama to images" << std::endl;
+        return false;
+    }
+    // // RemoveME:
+    // return true;
+
+    if (filenames.size() > 0)
+    {
+        updateThumbnails(filenames, qPointFs);
+    }
+
+}
+
+void PickPointsDialog::addPoint(Point3m& point, QString& name, bool present)
+{
+    qDebug() << "Beg PickPointsDialog::addPoint()";
+
+    // TBD: move addImageWindow from here
+
+
+    
+    //bool result = GLPickTri<CMeshO>::PickNearestFace(currentMousePosition.x(),gla->height()-currentMousePosition.y(),
 	//	mm.cm, face);
+
+    meshModel->cm.face.EnableFFAdjacency();
+    // vcg::tri::UpdateTopology<CMeshO>::FaceFace(meshModel);
+    meshModel->updateDataMask(MeshModel::MM_FACEFACETOPO);
+    tri::UpdateTopology<CMeshO>::FaceFaceFromTexCoord(meshModel->cm);
+    
 	CMeshO::FaceType *face = 0;
 
-	//qDebug() << "present: " << present;
+	qDebug() << "point: " << point[0] << " " << point[1] << " " << point[2];
+	qDebug() << "name: " << name;
+	qDebug() << "present: " << present;
 
 	//now look for the  normal
 	if (NULL != meshModel && present)
@@ -400,16 +983,54 @@ void PickPointsDialog::addPoint(Point3m &point, QString &name, bool present)
 
 		face = getClosestFace->getFace(point);
 		if (NULL == face)
+      {
 			qDebug() << "no face found for point: " << name;
+      }
+      else
+      {
+			qDebug() << "face: " << face;
+			qDebug() << "face material index0: " << face->WT(0).n();
+			qDebug() << "face material index1: " << face->WT(1).n();
+			qDebug() << "face material index2: " << face->WT(2).n();
+			// qDebug() << "face->WT(0) u,v: " << face->WT(0).u() << ", " << face->WT(0).v();
+			// qDebug() << "face->WT(1) u,v: " << face->WT(1).u() << ", " << face->WT(1).v();
+			// qDebug() << "face->WT(2) u,v: " << face->WT(2).u() << ", " << face->WT(2).v();
+
+#ifdef AVNER_PP
+         ObjTexCoord2 addedPoint_texCoords;
+         const int materialIndex = face->WT(0).n();
+         qDebug() << "textures2.size(): " << textures2.size();
+
+         if ((0 <= materialIndex) && (materialIndex < textures2.size()))
+         {
+             std::string textureName = textures2[materialIndex];
+             qDebug() << "textureName: " << textureName.c_str();
+
+             calcPointAttributes2(face, materialIndex, point, addedPoint_texCoords);
+         }
+
+         qDebug() << "materialIndex: " << materialIndex;
+         qDebug() << "addedPoint_texCoords (u,v): " << addedPoint_texCoords.u << ", " << addedPoint_texCoords.v;
+
+         addImageWindow(textures2, materialIndex, addedPoint_texCoords);
+#else
+#endif
+         
+      }
 	}
+	qDebug() << "foo1";
 
 	//if we find a face add its normal. else add a default one
 	if (NULL != face)
-		addTreeWidgetItemForPoint(point, name, face->N(), present);
+   {
+       qDebug() << "foo2";
+       addTreeWidgetItemForPoint(point, name, face->N(), present);
+   }
 	else
 	{
-		Point3m faceNormal;
-		addTreeWidgetItemForPoint(point, name, faceNormal, present);
+       qDebug() << "foo3";
+       Point3m faceNormal;
+       addTreeWidgetItemForPoint(point, name, faceNormal, present);
 	}
 }
 
@@ -546,6 +1167,8 @@ void PickPointsDialog::setCurrentMeshModel(MeshModel *newMeshModel, QGLWidget *g
 	//set up the 
 	getClosestFace->init(&(meshModel->cm));
 
+   textures2 = meshModel->cm.textures;
+       
 	//Load the points from meta data if they are there
 	if (vcg::tri::HasPerMeshAttribute(newMeshModel->cm, PickedPoints::Key))
 	{

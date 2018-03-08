@@ -562,14 +562,10 @@ public:
 	virtual void suggestedRenderingData(MeshModel &/*m*/, MLRenderingData& /*dt*/) {}
 
 	// Called when the user press the first time the button
-	virtual bool StartEdit(MeshModel &/*m*/, GLArea * /*parent*/, MLSceneGLSharedDataContext* /*cont*/) { return true; }
-	virtual bool StartEdit(MeshDocument &md, GLArea *parent, MLSceneGLSharedDataContext* cont)
-	{
-		//assert(NULL != md.mm());
-		if (md.mm() != NULL)
-			return (StartEdit(*(md.mm()), parent, cont));
-		else return false;
-	}
+        virtual bool StartEdit(MeshModel &m, GLArea *parent, MLSceneGLSharedDataContext* cont);
+        virtual bool StartEdit(MeshDocument &md, GLArea *parent, MLSceneGLSharedDataContext* cont);
+
+    
 	// Called when the user press the second time the button
 	virtual void EndEdit(MeshModel &/*m*/, GLArea * /*parent*/, MLSceneGLSharedDataContext* /*cont*/) {}
 	virtual void EndEdit(MeshDocument &/*m*/, GLArea * /*parent*/, MLSceneGLSharedDataContext* /*cont*/) {}

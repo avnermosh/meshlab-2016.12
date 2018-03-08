@@ -1,5 +1,28 @@
 #include "interfaces.h"
 
+bool MeshEditInterface::StartEdit(MeshModel &m, GLArea *parent, MLSceneGLSharedDataContext* cont)
+{
+    qDebug("Beg MeshEditInterface::StartEdit(MeshModel");
+    std::cout << "Beg MeshEditInterface::StartEdit(MeshModel1\n";
+
+    return true;
+}
+
+bool MeshEditInterface::StartEdit(MeshDocument &md, GLArea *parent, MLSceneGLSharedDataContext* cont)
+{
+    //assert(NULL != md.mm());
+    qDebug("Beg MeshEditInterface::StartEdit(MeshDocument");
+    std::cout << "Beg MeshEditInterface::StartEdit(MeshDocument1\n";
+    
+    if (md.mm() != NULL)
+        return (StartEdit(*(md.mm()), parent, cont));
+    else
+    {
+        return false;
+    }
+}
+
+
 void MeshLabInterface::Log(const char * f, ... )
 {
   if(log)

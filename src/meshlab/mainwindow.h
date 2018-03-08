@@ -52,6 +52,7 @@
 #include <QSplitter>
 
 #define MAXRECENTFILES 4
+#define AVNER_ADD_IMAGE_VIEWER
 
 class QAction;
 class QActionGroup;
@@ -93,6 +94,11 @@ class MainWindow : public QMainWindow, public MainWindowInterface
     Q_OBJECT
 
 public:
+#ifdef AVNER_ADD_IMAGE_VIEWER
+    void handleButton();
+#else
+#endif
+    
     // callback function to execute a filter
     void executeFilter(QAction *action, RichParameterSet &srcpar, bool isPreview = false);
     //parexpval is a string map containing the parameter expression values set in the filter's dialog.
@@ -540,6 +546,17 @@ private:
     static QString getDecoratedFileName(const QString& name);
 
 	MultiViewer_Container* _currviewcontainer;
+
+public:
+    
+#ifdef AVNER_ADD_IMAGE_VIEWER
+    QDockWidget *m_imageDockWidget;
+    QPushButton *m_button;
+    QSplitter *m_selectedPointViewerSplitter;
+#else
+#endif
+     
+
 };
 
 /// Event filter that is installed to intercept the open events sent directly by the Operative System

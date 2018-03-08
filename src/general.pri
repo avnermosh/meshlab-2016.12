@@ -9,6 +9,8 @@ VCGDIR = ../../../vcglib
 GLEWDIR = ../external/glew-1.7.0
 
 CONFIG += c++11
+# Avner
+CONFIG += debug
 
 macx:QMAKE_CXXFLAGS += -Wno-inconsistent-missing-override
 macx:CONFIG(release, debug|release):QMAKE_CXXFLAGS += -O3 -DNDEBUG

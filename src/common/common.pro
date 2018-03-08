@@ -19,6 +19,9 @@ win32-g++:DLLDESTDIR = ../distrib
 # win32-g++:DLLDESTDIR     = ./release
 # }
 
+# Avner
+CONFIG += debug
+
 mac:DLLDESTDIR = .
 
 # The following lines are necessary to avoid that when you re-compile everything you still find old dll in the plugins dir

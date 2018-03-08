@@ -30,7 +30,7 @@
 #define PICKPOINTS_DIALOG_H
 
 #include <QDockWidget>
-
+#include <QPointF>
 
 #include <common/meshmodel.h>
 
@@ -93,6 +93,11 @@ private:
 	bool active;
 };
 
+struct ObjTexCoord2
+{
+    float u;
+    float v;
+};
 
 class PickPointsDialog : public QDockWidget
 {
@@ -143,7 +148,11 @@ private:
 	//add a new point and call it something 
 	//bool present tells us if the point has been picked yet
 	void addPoint(Point3m &point, QString &name,  bool present);
-	
+    void updateThumbnails(std::list<std::string> filenames, std::list<QPointF>& qPointFs);
+    bool addImageWindow(const std::vector<std::string>& textures2,
+                        const int materialIndex,
+                        const ObjTexCoord2& addedPoint_texCoords);
+    
 	//handle everything involved with adding a point to the tree widget
 	PickedPointTreeWidgetItem * addTreeWidgetItemForPoint(Point3m &point, QString &name, CMeshO::FaceType::NormalType &faceNormal, bool present);
 	

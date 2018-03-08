@@ -73,6 +73,7 @@ SUBDIRS       = common \
                 plugins_experimental/edit_referencing \
                 meshlabplugins/edit_quality \
                 meshlabplugins/edit_select \
+                meshlabplugins/edit_texture \
 # Sample Plugins
                 sampleplugins/sampleedit \
                 sampleplugins/samplefilter \

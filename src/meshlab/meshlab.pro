@@ -4,6 +4,7 @@ DESTDIR = ../distrib
 EXIF_DIR = ../external/jhead-2.95
 
 DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x000000
+DEFINES += QT_NO_PRINTER
 
 INCLUDEPATH *= . \
 	.. \
@@ -39,7 +40,20 @@ HEADERS = ../common/interfaces.h \
     $$VCGDIR/wrap/gui/trackball.h \
     $$VCGDIR/wrap/gui/trackmode.h \
 	$$VCGDIR/wrap/gl/trimesh.h \
-	filterthread.h 
+	filterthread.h \
+        imagelistmodel.h \
+        imageviewer.h
+
+INCLUDEPATH +=	/mnt/avner/softwarelib/OpenCV-2.4.3/modules/calib3d/include \
+		/mnt/avner/softwarelib/OpenCV-2.4.3/modules/core/include \
+		/mnt/avner/softwarelib/OpenCV-2.4.3/modules/imgproc/include \
+		/mnt/avner/softwarelib/OpenCV-2.4.3/modules/features2d/include \
+		/mnt/avner/softwarelib/OpenCV-2.4.3/modules/flann/include \
+		/mnt/avner/softwarelib/OpenCV-2.4.3/modules/highgui/include \
+                /mnt/avner/softwarelib/boost/boost_1_65_1/localBuild/usr/local/include/ \
+                /home/avner/Downloads/hugin-2017.0.0/mybuild/src /home/avner/Downloads/hugin-2017.0.0/src/hugin_base /home/avner/Downloads/hugin-2017.0.0/src/celeste /home/avner/Downloads/hugin-2017.0.0/mybuild/src/celeste /home/avner/Downloads/hugin-2017.0.0/src /home/avner/anaconda3/include /usr/include/OpenEXR /usr/local/include /home/avner/anaconda3/include/python3.6m
+
+
 SOURCES = main.cpp \
     mainwindow_Init.cpp \
     mainwindow_RunTime.cpp \
@@ -66,7 +80,9 @@ SOURCES = main.cpp \
 	$$VCGDIR/wrap/gui/coordinateframe.cpp \
 	#$$GLEWDIR/src/glew.c \
     glarea_setting.cpp \
-	filterthread.cpp 
+	filterthread.cpp \
+        imagelistmodel.cpp \
+        imageviewer.cpp
 
 FORMS = ui/layerDialog.ui \
     ui/filterScriptDialog.ui \
@@ -132,6 +148,17 @@ win32-msvc2015:DEFINES += _CRT_SECURE_NO_DEPRECATE
 # macx-g++:QMAKE_CXXFLAGS_RELEASE += -O3
 
 CONFIG += stl
+# Avner
+CONFIG += debug
+
+HUGIN_LIBS = -rdynamic /home/avner/Downloads/hugin-2017.0.0/mybuild/src/hugin_base/libhuginbase.so.0.0 /usr/local/lib/libpano13.so /home/avner/Downloads/hugin-2017.0.0/mybuild/src/foreign/levmar/libhuginlevmar.a -lGLEW -lboost_filesystem -lboost_system /usr/local/lib/libvigraimpex.so -lImath -lIlmImf -lIex -lHalf -lIlmThread /usr/lib/x86_64-linux-gnu/libjpeg.so /usr/lib/x86_64-linux-gnu/libtiff.so /usr/lib/x86_64-linux-gnu/libpng.so /usr/lib/x86_64-linux-gnu/libz.so /usr/lib/x86_64-linux-gnu/libz.so /usr/local/lib/libexiv2.so -llcms2 -pthread -lX11 /usr/local/lib/libpano13.so -lboost_filesystem -lboost_system -lGLU -lGL -lGLEW /usr/lib/x86_64-linux-gnu/libsqlite3.so /usr/local/lib/libvigraimpex.so /usr/lib/x86_64-linux-gnu/libtiff.so /usr/local/lib/libexiv2.so -llcms2 -Wl,-rpath,/home/avner/Downloads/hugin-2017.0.0/mybuild/src/hugin_base:/usr/lib/x86_64-linux-gnu:/usr/local/lib:
+
+LIBS += /usr/lib/x86_64-linux-gnu/libopencv_features2d.so.2.4 \
+	/usr/lib/x86_64-linux-gnu/libopencv_flann.so.2.4 \
+	/usr/lib/x86_64-linux-gnu/libopencv_calib3d.so.2.4 \
+        -L /mnt/avner/softwarelib/boost/boost_1_65_1/localBuild/usr/local/lib -lboost_system \
+        -rdynamic /home/avner/Downloads/hugin-2017.0.0/mybuild/src/hugin_base/libhuginbase.so.0.0 /usr/local/lib/libpano13.so /home/avner/Downloads/hugin-2017.0.0/mybuild/src/foreign/levmar/libhuginlevmar.a -lGLEW -lboost_filesystem -lboost_system /usr/local/lib/libvigraimpex.so -lImath -lIlmImf -lIex -lHalf -lIlmThread /usr/lib/x86_64-linux-gnu/libjpeg.so /usr/lib/x86_64-linux-gnu/libtiff.so /usr/lib/x86_64-linux-gnu/libpng.so /usr/lib/x86_64-linux-gnu/libz.so /usr/lib/x86_64-linux-gnu/libz.so /usr/local/lib/libexiv2.so -llcms2 -pthread -lX11 /usr/local/lib/libpano13.so -lboost_filesystem -lboost_system -lGLU -lGL -lGLEW /usr/lib/x86_64-linux-gnu/libsqlite3.so /usr/local/lib/libvigraimpex.so /usr/lib/x86_64-linux-gnu/libtiff.so /usr/local/lib/libexiv2.so -llcms2 -Wl,-rpath,/home/avner/Downloads/hugin-2017.0.0/mybuild/src/hugin_base:/usr/lib/x86_64-linux-gnu:/usr/local/lib:
+
 
 macx:LIBS		+= -L../external/lib/macx64 -ljhead ../common/libcommon.dylib
 macx:QMAKE_POST_LINK ="cp -P ../common/libcommon.1.dylib ../distrib/meshlab.app/Contents/MacOS; install_name_tool -change libcommon.1.dylib @executable_path/libcommon.1.dylib ../distrib/meshlab.app/Contents/MacOS/meshlab"
@@ -151,8 +178,9 @@ win32-g++:LIBS        	+= -L../external/lib/win32-gcc -ljhead -L../distrib -lcom
 #}
 
 # linux-g++:LIBS += -L../external/lib/linux-g++ -ljhead -L../distrib -lcommon -lGLU
-# avner
-linux-g++:LIBS += -L../lib/linux-g++ -L../external/lib/linux-g++ -ljhead -L../distrib -lcommon -lGLU
+# linux-g++:LIBS += -L../lib/linux-g++ -L../external/lib/linux-g++ -ljhead -L../distrib -lcommon -lGLU
+# linux-g++:LIBS += -L../external/lib/linux-g++ /home/avner/Downloads/meshlab-2016.12/external/lib/linux-g++/libjhead.a -L../distrib -lcommon -lGLU
+linux-g++:LIBS += -L../external/lib/linux-g++ -L../external/lib/linux-g++ -ljhead -L../distrib -lcommon -lGLU
 
 linux-g++:QMAKE_RPATHDIR += ../distrib
 linux-g++-32:LIBS += -L../external/lib/linux-g++-32 -ljhead -L../distrib -lcommon -lGLU

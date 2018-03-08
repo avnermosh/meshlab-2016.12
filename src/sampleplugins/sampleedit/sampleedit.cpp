@@ -65,14 +65,26 @@ void SampleEditPlugin::mouseReleaseEvent(QMouseEvent * event, MeshModel &/*m*/, 
 void SampleEditPlugin::Decorate(MeshModel &m, GLArea * gla, QPainter *p)
 {
 	// first of all, the picking
+    this->Log(GLLogStream::FILTER, "foo2");
+    // am1: prints in the GUI
+	this->RealTimeLog("foo3", "%s", "bar1");
+   this->Log(GLLogStream::FILTER, "haveToPick: %i", haveToPick);
+   this->Log(GLLogStream::FILTER, "cur mouse location x,y: %d, %d", cur.x(), cur.y());
+
+    
+	// first of all, the picking
 	if (haveToPick)
 	{
+       this->Log(GLLogStream::FILTER, "foo3");
 		glPushMatrix();
 		glMultMatrix(m.cm.Tr);
 
+this->Log(GLLogStream::FILTER, "pickmode: %i", pickmode);
 		if (pickmode == 0)
 		{
 			NewFaceSel.clear();
+this->Log(GLLogStream::FILTER, "gla->height(): %d", gla->height());
+this->Log(GLLogStream::FILTER, "cur mouse location x,y2: %d, %d", cur.x(), gla->height() - cur.y());
 			GLPickTri<CMeshO>::PickVisibleFace(cur.x(), gla->height() - cur.y(), m.cm, NewFaceSel);
 			if (NewFaceSel.size() > 0)
 			{
@@ -93,6 +105,7 @@ void SampleEditPlugin::Decorate(MeshModel &m, GLArea * gla, QPainter *p)
 
 		glPopMatrix();
 	}
+   this->Log(GLLogStream::FILTER, "foo4");
     
 	// then, the status
 	QString line1 = "";
@@ -100,9 +113,15 @@ void SampleEditPlugin::Decorate(MeshModel &m, GLArea * gla, QPainter *p)
 	QString line3 = "";
 
 	if (pickmode == 0)
+   {
+      this->Log(GLLogStream::FILTER, "foo5");
 		line1 = "Face Picking - SPACE for vertex<br>";
+   }
 	else if (pickmode == 1)
+   {
+      this->Log(GLLogStream::FILTER, "foo6");
 		line1 = "Vertex Picking - SPACE for face<br>";
+   }
 
 	if ((curFacePtr != 0) || (curVertPtr != 0))
 	{
