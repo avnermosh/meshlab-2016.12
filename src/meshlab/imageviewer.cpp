@@ -62,7 +62,6 @@
 
 
 #define ADD_HUGIN
-
 #ifdef ADD_HUGIN
 #include <panodata/Panorama.h>
 #include <panotools/PanoToolsInterface.h>
