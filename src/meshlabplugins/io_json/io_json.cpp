@@ -71,6 +71,7 @@ bool JSONIOPlugin::save(const QString & formatName,const QString & fileName, Mes
 	const bool hasPerVertexTexCoord = ((mask & vcg::tri::io::Mask::IOM_VERTTEXCOORD) != 0) && m.hasDataMask(MeshModel::MM_VERTTEXCOORD);
 
 	const CMeshO & cm = m.cm;
+	CMeshO & cm1 = m.cm;
 
 	const std::string filename = QFile::encodeName(fileName).constData();
 
@@ -313,6 +314,12 @@ bool JSONIOPlugin::save(const QString & formatName,const QString & fileName, Mes
 						while (cm.face[k].IsD()) k++;
 						const CMeshO::FaceType & f = cm.face[k];
 						os << int(f.cV(0) - v0) << ", " << int(f.cV(1) - v0) << ", " << int(f.cV(2) - v0);
+
+                  // CMeshO::FaceType & f1 = cm1.face[k];
+                  // int faceMaterialIndex = f1.WT(0).n();
+						// os << " faceMaterialIndex: " << faceMaterialIndex;
+						// os << " faceMaterialName: " << m.cm.textures[faceMaterialIndex].c_str();
+
 						c++;
 						k++;
 					}
@@ -321,6 +328,12 @@ bool JSONIOPlugin::save(const QString & formatName,const QString & fileName, Mes
 						while (cm.face[k].IsD()) k++;
 						const CMeshO::FaceType & f = cm.face[k];
 						os << ", " << int(f.cV(0) - v0) << ", " << int(f.cV(1) - v0) << ", " << int(f.cV(2) - v0);
+
+                  // CMeshO::FaceType & f1 = cm1.face[k];
+                  // int faceMaterialIndex = f1.WT(0).n();
+						// os << " faceMaterialIndex: " << faceMaterialIndex;
+						// os << " faceMaterialName: " << m.cm.textures[faceMaterialIndex].c_str();
+
 						k++;
 					}
 					if (c <= (sz - 1))
@@ -328,10 +341,189 @@ bool JSONIOPlugin::save(const QString & formatName,const QString & fileName, Mes
 						os << ",";
 					}
 					os << std::endl;
+
+				}
+			}
+		}
+		// os << "      ]" << std::endl;
+		os << "      ]," << std::endl;
+
+
+		os << "      \"uValues\"   :" << std::endl;
+		os << "      [" << std::endl;
+		{
+			size_t k = 0;
+			size_t c = 0;
+			const size_t sz = cm.fn;
+			while (c < sz)
+			{
+				const size_t n = std::min(c + maxValuesPerLine, sz);
+				if (n > 0)
+				{
+					os << "        ";
+					{
+						while (cm.face[k].IsD()) k++;
+                  CMeshO::FaceType & f1 = cm1.face[k];
+						os << f1.WT(0).U() << ", " << f1.WT(1).U() << ", " << f1.WT(2).U();
+						c++;
+						k++;
+					}
+					for (; c<n; ++c)
+					{
+						while (cm.face[k].IsD()) k++;
+                  CMeshO::FaceType & f1 = cm1.face[k];
+						os << ", "  << f1.WT(0).U() << ", " << f1.WT(1).U() << ", " << f1.WT(2).U();
+						k++;
+					}
+					if (c <= (sz - 1))
+					{
+						os << ",";
+					}
+					os << std::endl;
+
+				}
+			}
+		}
+		os << "      ]," << std::endl;
+
+		os << "      \"vValues\"   :" << std::endl;
+		os << "      [" << std::endl;
+		{
+			size_t k = 0;
+			size_t c = 0;
+			const size_t sz = cm.fn;
+			while (c < sz)
+			{
+				const size_t n = std::min(c + maxValuesPerLine, sz);
+				if (n > 0)
+				{
+					os << "        ";
+					{
+						while (cm.face[k].IsD()) k++;
+                  CMeshO::FaceType & f1 = cm1.face[k];
+						os << f1.WT(0).V() << ", " << f1.WT(1).V() << ", " << f1.WT(2).V();
+						c++;
+						k++;
+					}
+					for (; c<n; ++c)
+					{
+						while (cm.face[k].IsD()) k++;
+                  CMeshO::FaceType & f1 = cm1.face[k];
+						os << ", "  << f1.WT(0).V() << ", " << f1.WT(1).V() << ", " << f1.WT(2).V();
+						k++;
+					}
+					if (c <= (sz - 1))
+					{
+						os << ",";
+					}
+					os << std::endl;
+
+				}
+			}
+		}
+		os << "      ]," << std::endl;
+
+      
+		os << "      \"materialIndices\"   :" << std::endl;
+		os << "      [" << std::endl;
+		{
+			size_t k = 0;
+			size_t c = 0;
+			const size_t sz = cm.fn;
+			while (c < sz)
+			{
+				const size_t n = std::min(c + maxValuesPerLine, sz);
+				if (n > 0)
+				{
+					os << "        ";
+					{
+						while (cm.face[k].IsD()) k++;
+                  CMeshO::FaceType & f1 = cm1.face[k];
+                  int faceMaterialIndex = f1.WT(0).n();
+						os << faceMaterialIndex;
+						c++;
+						k++;
+					}
+					for (; c<n; ++c)
+					{
+						while (cm.face[k].IsD()) k++;
+                  CMeshO::FaceType & f1 = cm1.face[k];
+                  int faceMaterialIndex = f1.WT(0).n();
+						os << ", " << faceMaterialIndex;
+						k++;
+					}
+					if (c <= (sz - 1))
+					{
+						os << ",";
+					}
+					os << std::endl;
+
+				}
+			}
+		}
+		// os << "      ]," << std::endl;
+		os << "      ]" << std::endl;
+
+
+		os << "      \"materialNames\"   :" << std::endl;
+		os << "      [" << std::endl;
+		{
+			size_t k = 0;
+			size_t c = 0;
+			const size_t sz = cm.fn;
+			while (c < sz)
+			{
+				const size_t n = std::min(c + maxValuesPerLine, sz);
+				if (n > 0)
+				{
+					os << "        ";
+					{
+						while (cm.face[k].IsD()) k++;
+                  CMeshO::FaceType & f1 = cm1.face[k];
+                  int faceMaterialIndex = f1.WT(0).n();
+                  if(faceMaterialIndex>= 0)
+                  {
+                      const char* faceMaterialName = m.cm.textures[faceMaterialIndex].c_str();
+                      os << faceMaterialName;
+                      // os << m.cm.textures[faceMaterialIndex].c_str();
+                  }
+                  else
+                  {
+                      os << "foo";
+                  }
+                  
+						c++;
+						k++;
+					}
+					for (; c<n; ++c)
+					{
+						while (cm.face[k].IsD()) k++;
+                  CMeshO::FaceType & f1 = cm1.face[k];
+                  int faceMaterialIndex = f1.WT(0).n();
+
+                  if(faceMaterialIndex>= 0)
+                  {
+                      const char* faceMaterialName = m.cm.textures[faceMaterialIndex].c_str();
+                      os << ", " << faceMaterialName;
+                      // os << ", " << m.cm.textures[faceMaterialIndex].c_str();
+                  }
+                  else
+                  {
+                      os << ", foo";
+                  }
+						k++;
+					}
+					if (c <= (sz - 1))
+					{
+						os << ",";
+					}
+					os << std::endl;
+
 				}
 			}
 		}
 		os << "      ]" << std::endl;
+
 		os << "    }" << std::endl;
 	}
 
