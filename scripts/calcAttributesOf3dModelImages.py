@@ -26,14 +26,11 @@ import pickle
 #####################################
 
 def extract_images_info_from_pto_file():
-    """
-    place holder
-    """
-    # print( 'BEG extract_images_info_from_pto_file' )
 
-    pattern1  = '^p '
-    pattern2  = '^i '
-    pattern3  = '\ w(\d+)\ h(\d+)\ '
+    pattern_panorama  = '^p '
+    pattern_image  = '^i '
+    pattern_imageWidth_imageHeight  = '\ w(\d+)\ h(\d+)\ '
+    pattern_imageWidth_imageHeight_imageName  = '\ w(\d+)\ h(\d+)\ .*\ n"(.*)"'
 
     wallImageInfo = ImageInfo()
     imagesInfo = []
@@ -50,51 +47,39 @@ def extract_images_info_from_pto_file():
         for line in lines:
 
             # Regex applied to each line
-            match = re.search(pattern1, line)
+            match = re.search(pattern_panorama, line)
             if match:
-                # print( 'line1', line )
-
-                match = re.search(pattern3, line)
+                match = re.search(pattern_imageWidth_imageHeight, line)
                 if match:
-                    # print( 'line1a', line )
                     numGroups = match.groups()
-                    # print( 'numGroups1', numGroups )
-                    width = match.group(1)
-                    # print( 'width1', width )
+                    print( 'numGroups', numGroups )
+                    width1 = match.group(1)
                     height = match.group(2)
-                    # print( 'height1', height )
-
-                    wallImageInfo.imageWidth = int(width)
+                    wallImageInfo.imageWidth = int(width1)
                     wallImageInfo.imageHeight = int(height)
 
+                    # i w4752 h3168 f0 v=0 Ra=0 Rb=0 Rc=0 Rd=0 Re=0 Eev7.55524178718839 Er1.08207949625825 Eb0.963022030752082 r0 p11.2666529479903 y-0 TrX-0.31662124018351 TrY-0.234779622084196 TrZ0 Tpy-0 Tpp0 j0 a=0 b=0 c=0 d=0 e=0 g=0 t=0 Va=0 Vb=0 Vc=0 Vd=0 Vx=0 Vy=0  Vm5 n"IMG_6842.JPG"
 
             # Regex applied to each line
-            match = re.search(pattern2, line)
+            match = re.search(pattern_image, line)
             if match:
                 # Make sure to add \n to display correctly when we write it back
-                # print( 'line2', line )
-
-                match = re.search(pattern3, line)
+                match = re.search(pattern_imageWidth_imageHeight_imageName, line)
                 if match:
-                    # print( 'line2a', line )
                     numGroups = match.groups()
-                    # print( 'numGroups2', numGroups )
                     width = match.group(1)
-                    # print( 'width2', width )
                     height = match.group(2)
-                    # print( 'height2', height )
+                    imageFileName = match.group(3)
 
                     imageInfo = ImageInfo()
                     imageInfo.imageIndex = imageIndex
                     imageIndex += 1
                     imageInfo.imageWidth = int(width)
                     imageInfo.imageHeight = int(height)
+                    imageInfo.imageFileName = imageFileName
                     imagesInfo.append(imageInfo)
 
 
-
-    # print( 'wallImageInfo', wallImageInfo )
-    # print( 'imagesInfo', imagesInfo )
 
     return( wallImageInfo, imagesInfo )
 
@@ -102,10 +87,6 @@ def extract_images_info_from_pto_file():
 
 
 def calc_uv_coords(wallImageInfo, imagesInfo):
-    """
-    calc_uv_coords
-    """
-    print( 'BEG calc_uv_coords' )
 
     # update points of wallImageInfo with the imageCoords
     wallImageInfo.tlPoint.imageCoords.x = 0
@@ -134,12 +115,6 @@ def calc_uv_coords(wallImageInfo, imagesInfo):
         imageInfo.tlPoint.imageCoords.y = 0
         imagePoints += '%s %s %s\n' % (imageInfo.imageIndex, imageInfo.tlPoint.imageCoords.x, imageInfo.tlPoint.imageCoords.y)
 
-        # typeOfimageInfo = type(imageInfo.imageWidth)
-        # print( 'typeOfimageInfo', typeOfimageInfo )
-
-        # typeOfimageCoordsX = type(imageInfo.trPoint.imageCoords.x)
-        # print( 'typeOfimageCoordsX', typeOfimageCoordsX )
-
         imageInfo.trPoint.imageCoords.x = imageInfo.imageWidth-1
         imageInfo.trPoint.imageCoords.y = imageInfo.originY
         imagePoints += '%s %s %s\n' % (imageInfo.imageIndex, imageInfo.trPoint.imageCoords.x, imageInfo.trPoint.imageCoords.y)
@@ -164,25 +139,15 @@ def calc_uv_coords(wallImageInfo, imagesInfo):
     trafoOut = (pipe.communicate(input
                                  = imagePoints.encode('utf-8'))[0]).decode('utf-8')
 
-    # print( 'imagePoints', imagePoints )
-
     splitImagePoints = imagePoints.splitlines()
-    # print( 'splitImagePoints', splitImagePoints )
-    # print( 'len(splitImagePoints)', len(splitImagePoints) )
-
     splitTrafoOut = trafoOut.splitlines()
-    # print( 'splitTrafoOut', splitTrafoOut )
-    # print( 'len(splitTrafoOut)', len(splitTrafoOut) )
 
     for inPointIndex, inPointStr in enumerate(splitImagePoints):
 
         inPointArr = inPointStr.split()
-
         projectedPointStr = splitTrafoOut[inPointIndex]
         projectedPoint = projectedPointStr.split()
-
         imageIndex = int(inPointArr[0])
-        # print( 'imageIndex', imageIndex )
 
         if ((imageIndex<0) or (imageIndex>=len(imagesInfo))):
             print( 'imageIndex', imageIndex )
@@ -203,9 +168,7 @@ def calc_uv_coords(wallImageInfo, imagesInfo):
         point.uvCoordsNormalized.x = round(point.uvCoords.x / wallImageInfo.imageWidth, 2)
         point.uvCoordsNormalized.y = round(point.uvCoords.y / wallImageInfo.imageHeight, 2)
 
-        # print( 'point1', point )
 
-        # __eq__
         if (point.imageCoords == imageInfo.tlPoint.imageCoords):
             imageInfo.tlPoint = point
         elif (point.imageCoords == imageInfo.trPoint.imageCoords):
@@ -250,13 +213,6 @@ if __name__ == '__main__':
 
     ( wallImageInfo, imagesInfo ) = extract_images_info_from_pto_file()
 
-    # typeOfimagesInfo = type(imagesInfo)
-    # print( 'typeOfimagesInfo', typeOfimagesInfo )
-    # sys.exit(1)
-
-    # print( 'wallImageInfo2', wallImageInfo )
-    # print( 'imagesInfo2', imagesInfo )
-
     wallInfo = calc_uv_coords(wallImageInfo, imagesInfo)
 
     # M-x json-pretty-print-buffer
@@ -273,15 +229,7 @@ if __name__ == '__main__':
     with open(json_wall_attributes_filename, 'w') as outfile:
         json.dump(wallInfo, outfile, cls=MyJsonEncoder, sort_keys=True, indent=4, separators=(',', ': '))
 
-    # print( 'wallInfo', wallInfo )
-    # print( '' )
-    # print( '' )
-    # print( '' )
-    # print( '' )
-    # print( '' )
-
     with open(pickle_wall_attributes_filename, 'w') as outfile:
         pickle.dump(wallInfo, outfile)
 
     print( 'END Main' )
-

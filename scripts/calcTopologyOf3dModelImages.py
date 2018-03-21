@@ -24,17 +24,19 @@ def length(v):
     return sqrt(v[0]**2+v[1]**2)
 
 def dot_product(v,w):
-    # print( 'v', v )
     return v[0]*w[0]+v[1]*w[1]
 
 def determinant(v,w):
    return v[0]*w[1]-v[1]*w[0]
 
 def inner_angle(v,w):
-   cosx=dot_product(v,w)/(length(v)*length(w))
-   # print( 'cosx', cosx )
-   rad=acos(cosx) # in radians
-   return rad*180/pi # returns degrees
+    d1 = dot_product(v,w)
+    cosx = dot_product(v,w)/(length(v)*length(w))
+    rad=acos(cosx) # in radians
+    val = rad*180/pi
+    
+    return rad*180/pi # returns degrees
+
 
 def angle_clockwise(A, B):
     inner=inner_angle(A,B)
@@ -97,31 +99,20 @@ def createTopology():
     # https://stackoverflow.com/questions/27150990/python-itertools-combinations-how-to-obtain-the-indices-of-the-combined-numbers
     indexPairs = list((i,j) for ((i,_),(j,_)) in itertools.combinations(enumerate(imagesInfo), 2))
     for indexPair in indexPairs:
-        # print( 'indexPair', indexPair )
-
         imageIndex0 = imagesInfo[indexPair[0]].imageIndex
-        # print( 'imageIndex0', imageIndex0 )
         imageIndex1 = imagesInfo[indexPair[1]].imageIndex
-        # print( 'imageIndex1', imageIndex1 )
-        print( 'imageIndex0, imageIndex1', imageIndex0, imageIndex1 )
 
         pointA = [None]*2
-        pointA[0] = imagesInfo[indexPair[0]].centerPoint.uvCoordsNormalized.x
-        pointA[1] = imagesInfo[indexPair[0]].centerPoint.uvCoordsNormalized.y
-        print( 'pointA', pointA )
+        pointA[0] = imagesInfo[indexPair[0]].centerPoint.uvCoordsNormalized.x - imagesInfo[indexPair[1]].centerPoint.uvCoordsNormalized.x
+        pointA[1] = imagesInfo[indexPair[0]].centerPoint.uvCoordsNormalized.y - imagesInfo[indexPair[1]].centerPoint.uvCoordsNormalized.y
 
         pointB = [None]*2
-        pointB[0] = imagesInfo[indexPair[1]].centerPoint.uvCoordsNormalized.x
-        pointB[1] = imagesInfo[indexPair[1]].centerPoint.uvCoordsNormalized.y
-        print( 'pointB', pointB )
+        pointB[0] = 0
+        pointB[1] = 1
 
         angleInDeg = angle_clockwise(pointA, pointB)
-        print( 'angleInDeg', angleInDeg )
-        print( '' )
 
-        TBD check angle between 0,1 should be horizontal but is vertical ~349)
         distance1 = distance(pointA, pointB)
-        # print( 'distance1', distance1 )
 
         point1 = NeighborPoint()
         point1.pointIndex = imagesInfo[indexPair[0]].imageIndex

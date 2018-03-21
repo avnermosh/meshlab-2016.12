@@ -462,7 +462,7 @@ bool JSONIOPlugin::save(const QString & formatName,const QString & fileName, Mes
 			}
 		}
 		// os << "      ]," << std::endl;
-		os << "      ]" << std::endl;
+		os << "      ]," << std::endl;
 
 
 		os << "      \"materialNames\"   :" << std::endl;
@@ -484,12 +484,12 @@ bool JSONIOPlugin::save(const QString & formatName,const QString & fileName, Mes
                   if(faceMaterialIndex>= 0)
                   {
                       const char* faceMaterialName = m.cm.textures[faceMaterialIndex].c_str();
-                      os << faceMaterialName;
+                      os << "\"" << faceMaterialName << "\"";
                       // os << m.cm.textures[faceMaterialIndex].c_str();
                   }
                   else
                   {
-                      os << "foo";
+                      os << "\"NA\"";
                   }
                   
 						c++;
@@ -504,12 +504,12 @@ bool JSONIOPlugin::save(const QString & formatName,const QString & fileName, Mes
                   if(faceMaterialIndex>= 0)
                   {
                       const char* faceMaterialName = m.cm.textures[faceMaterialIndex].c_str();
-                      os << ", " << faceMaterialName;
+                      os << ", \"" << faceMaterialName << "\"";
                       // os << ", " << m.cm.textures[faceMaterialIndex].c_str();
                   }
                   else
                   {
-                      os << ", foo";
+                      os << ", \"NA\"";
                   }
 						k++;
 					}

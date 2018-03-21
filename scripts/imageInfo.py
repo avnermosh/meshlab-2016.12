@@ -11,9 +11,9 @@ from json import JSONEncoder
 #####################################
 
 class Point2d:
-    def __init__(self):
-	self.x = 0
-	self.y = 0
+    def __init__(self, x=0, y=0):
+	self.x = x
+	self.y = y
 
     def __eq__(self, other):
         return ((self.x == other.x) and (self.y == other.y))
@@ -107,8 +107,9 @@ class ImageInfo:
 	self.imageIndex = 0
         self.originX = 0
         self.originY = 0
-        self.imageWidth = 4752
-        self.imageHeight = 3168 
+        self.imageWidth = -1
+        self.imageHeight = -1 
+	self.imageFileName = 'NA'
         self.tlPoint = Point()
         self.trPoint = Point()
         self.blPoint = Point()
@@ -130,6 +131,8 @@ class ImageInfo:
 
 class WallInfo:
     def __init__(self):
+        self.materialIndex = -1
+        self.materialName = 'NA'
 	self.wallImageInfo = ImageInfo()
 	self.imagesInfo = []
 
