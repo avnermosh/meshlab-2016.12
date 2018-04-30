@@ -36,6 +36,9 @@ class Point3d:
 	self.y = 0
 	self.z = 0
 
+    def __eq__(self, other):
+        return ((self.x == other.x) and (self.y == other.y) and (self.z == other.z))
+
     def __str__(self):
         sb = []
         for key in self.__dict__:
@@ -53,6 +56,22 @@ class Point:
 	self.uvCoords = Point2d()
 	self.uvCoordsNormalized = Point2d()
 	self.worldcoords = Point3d()
+
+    def __str__(self):
+        sb = []
+        for key in self.__dict__:
+            sb.append("{key}='{value}'".format(key=key, value=self.__dict__[key]))
+        return ', '.join(sb)
+
+    def __repr__(self):
+        return str(self)
+
+        
+#####################################
+
+class Face:
+    def __init__(self):
+	self.vertices = []
 
     def __str__(self):
         sb = []
@@ -133,7 +152,8 @@ class WallInfo:
     def __init__(self):
         self.materialIndex = -1
         self.materialName = 'NA'
-	self.wallImageInfo = ImageInfo()
+        self.faces = []
+	self.overviewImageInfo = ImageInfo()
 	self.imagesInfo = []
 
     def __str__(self):

@@ -31,10 +31,19 @@ def determinant(v,w):
 
 def inner_angle(v,w):
     d1 = dot_product(v,w)
-    cosx = dot_product(v,w)/(length(v)*length(w))
+
+    denominator = (length(v)*length(w))
+    if denominator == 0:
+        print( 'v' )
+        print( v )
+        print( 'w' )
+        print( w )
+        raise AssertionError("denominator is 0")
+
+    cosx = dot_product(v,w)/denominator
     rad=acos(cosx) # in radians
     val = rad*180/pi
-    
+
     return rad*180/pi # returns degrees
 
 
@@ -46,55 +55,13 @@ def angle_clockwise(A, B):
     else: # if the det > 0 then A is immediately clockwise of B
         return 360-inner
 
-
-# def computePoints(x, y, imageWidth, imageHeight):
-
-#     centerPoint = Point()
-#     centerPoint.imageCoords.x = x
-#     centerPoint.imageCoords.y = y
-#     centerPoint.uvCoords.x = float(centerPoint.imageCoords.x) / imageWidth
-#     centerPoint.uvCoords.y = float(centerPoint.imageCoords.y) / imageHeight
-
-#     tlPoint = Point()
-#     tlPoint.imageCoords.x = 0
-#     tlPoint.imageCoords.y = 0
-#     tlPoint.uvCoords.x = float(0) / imageWidth
-#     tlPoint.uvCoords.y = float(0) / imageHeight
-
-#     trPoint = Point()
-#     trPoint.imageCoords.x = imageWidth
-#     trPoint.imageCoords.y = 0
-#     trPoint.uvCoords.x = float(trPoint.imageCoords.x) / imageWidth
-#     trPoint.uvCoords.y = float(trPoint.imageCoords.y) / imageHeight
-
-#     brPoint = Point()
-#     brPoint.imageCoords.x = imageWidth
-#     brPoint.imageCoords.y = imageHeight
-#     brPoint.uvCoords.x = float(brPoint.imageCoords.x) / imageWidth
-#     brPoint.uvCoords.y = float(brPoint.imageCoords.y) / imageHeight
-
-#     blPoint = Point()
-#     blPoint.imageCoords.x = 0
-#     blPoint.imageCoords.y = imageHeight
-#     blPoint.uvCoords.x = float(blPoint.imageCoords.x) / imageWidth
-#     blPoint.uvCoords.y = float(blPoint.imageCoords.y) / imageHeight
-
-
-
-#     return (centerPoint, tlPoint, trPoint, brPoint, blPoint)
-
 # -----------------------------------------------------------------
 # createTopology
 # -----------------------------------------------------------------
 
-def createTopology():
+def createTopology(wallInfo):
 
-    with open(args.in_wall_attributes_filename, 'r') as infile:
-        wallInfo = pickle.load(infile)
-
-    wallImageInfo = wallInfo.wallImageInfo
     imagesInfo = wallInfo.imagesInfo
-
 
     # https://stackoverflow.com/questions/27150990/python-itertools-combinations-how-to-obtain-the-indices-of-the-combined-numbers
     indexPairs = list((i,j) for ((i,_),(j,_)) in itertools.combinations(enumerate(imagesInfo), 2))
@@ -155,38 +122,41 @@ def createTopology():
 
     wallInfo.imagesInfo = imagesInfo
 
-    with open(args.out_wall_attributes_filename, 'w') as outfile:
-        json.dump(wallInfo, outfile, cls=MyJsonEncoder, sort_keys=True, indent=4, separators=(',', ': '))
-
-    return
+    return wallInfo
 
 
-# -----------------------------------------------------------------
-# Main
-# -----------------------------------------------------------------
+# # -----------------------------------------------------------------
+# # Main
+# # -----------------------------------------------------------------
 
-# -----------------------------------------------------------------
-# Parse command line arguments
-# -----------------------------------------------------------------
+# # -----------------------------------------------------------------
+# # Parse command line arguments
+# # -----------------------------------------------------------------
 
-parser = argparse.ArgumentParser(description='Caculate topology of wall images.')
+# parser = argparse.ArgumentParser(description='Caculate topology of wall images.')
 
-parser.add_argument("--in_wall_attributes_filename",
-                    type=str,
-                    default='/tmp/points2d.pickle',
-                    help="Input wall attributes file name")
+# parser.add_argument("--in_wall_attributes_filename",
+#                     type=str,
+#                     default='/tmp/points2d.pickle',
+#                     help="Input wall attributes file name")
 
-parser.add_argument("--out_wall_attributes_filename",
-                    type=str,
-                    default='/tmp/wall_attributes_filename.json',
-                    help="Output wall attributes file name")
+# parser.add_argument("--out_wall_attributes_filename",
+#                     type=str,
+#                     default='/tmp/wall_attributes_filename.json',
+#                     help="Output wall attributes file name")
 
-args = parser.parse_args()
+# args = parser.parse_args()
 
-# -----------------------------------------------------------------
-# Beg main
-# -----------------------------------------------------------------
+# # -----------------------------------------------------------------
+# # Beg main
+# # -----------------------------------------------------------------
 
-print("Beg main")
+# print("Beg main")
 
-createTopology()
+# with open(args.in_wall_attributes_filename, 'r') as infile:
+#     wallInfo = pickle.load(infile)
+
+# wallInfo = createTopology(wallInfo)
+
+# with open(args.out_wall_attributes_filename, 'w') as outfile:
+#     json.dump(wallInfo, outfile, cls=MyJsonEncoder, sort_keys=True, indent=4, separators=(',', ': '))

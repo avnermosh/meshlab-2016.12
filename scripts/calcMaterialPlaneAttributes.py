@@ -10,7 +10,7 @@ For each materialIndex (maps to materialName, e.g. room1/wall1/wall_fused.jpg)
 
 usage example:
 python ~/avner/meshlab/branches/meshlab-2016.12/scripts/calcMaterialPlaneAttributes.py \
- --3dmodel_json_filename /tmp/tmp1/mainHouse/3543_W18_shimi_mainHouse.json \
+ --threed_model_json_filename /tmp/tmp1/mainHouse/3543_W18_shimi_mainHouse.json \
  --out_dir /tmp/tmp1/
 """
 
@@ -22,41 +22,79 @@ import os
 import sys
 import json
 from json import JSONEncoder
-from imageInfo import WallInfo, ImageInfo, Point, Point2d, MyJsonEncoder
+from imageInfo import WallInfo, ImageInfo, Face, Point, Point2d, MyJsonEncoder
 import re
 import pickle
+from calcAttributesOf3dModelImages import extract_images_info_from_pto_file, calc_uv_coords, calc_points3d_coords
+from calcTopologyOf3dModelImages import createTopology
+from calcAttributesOf3dModel import calcFaceAttributes, populateWallsInfo
+from create_overview_image_and_calc_uv_coords_using_grid import calc_images_coords_normalized, mosaic_images
 
-
-#####################################
-
-def parse_3d_model_json_file():
-
-    with open(args.threed_model_json_filename, 'r') as infile:
-        threed_model = json.load(infile)
-
-    return( threed_model )
+import os.path
 
 #####################################
 
-def calcFaceAttributes(index1, face_indices, verticeVals, face_uValues, face_vValues):
+def calc_uv_coords_using_hugin(wallInfo, abs_dir):
 
-    numFaceIndicesPerFace = 3
-    index2 = index1 * numFaceIndicesPerFace
+    #######################################################
+    # Extract the following attributes for the following image types:
+    # - overviewImageInfo: imageWidth, imageHeight
+    # - imageInfo: imageIndex, imageWidth, imageHeight, imageFileName
+    #######################################################
 
-    faceVertex = Point()
-    faceVertexIndex = face_indices[index2]
-    print( 'faceVertexIndex', faceVertexIndex )
-    print( 'verticeVals[faceVertexIndex]', verticeVals[faceVertexIndex] )
-    faceVertex.worldcoords.x = float(verticeVals[faceVertexIndex])
-    faceVertex.worldcoords.y = float(verticeVals[faceVertexIndex+1])
-    faceVertex.worldcoords.z = float(verticeVals[faceVertexIndex+2])
+    print( 'Extract wall images info' )
 
-    faceVertex.uvCoords.x = face_uValues[index2]
-    faceVertex.uvCoords.y = face_vValues[index2]
+    # pto_filename = '/tmp/wall1.pto'
+    pto_filename = '%s/%s' % (abs_dir, 'wall.pto')
+    # print( 'pto_filename', pto_filename )
 
-    # faceVertex.imageCoords is filled later on by calcAttributesOf3dModelImages.py
+    if not os.path.isfile(pto_filename) :
+        # continue
+        return (False, wallInfo)
 
-    return faceVertex
+    # skip wall.pto for now it does not have a ROI to compute image width/height from
+    if pto_filename == '/home/avner/avner/constructionOverlay/data/3543_W18_shimi/mainHouse/room1/wall6/wall.pto':
+        print( 'Skipping pto_filename: ', pto_filename )
+        # continue
+        return (False, wallInfo)
+
+    wallInfo = extract_images_info_from_pto_file(wallInfo, pto_filename)
+
+    # if (wallInfo.materialName == 'room1/wall3/wall_fused.jpg'):
+    #     print( 'wallInfo', wallInfo )
+    #     print( 'wallInfo.faces3', wallInfo.faces )
+    #     print( 'wallInfo.materialIndex', wallInfo.materialIndex )
+    #     print( 'wallInfo.materialName', wallInfo.materialName )
+    #     sys.exit()
+
+    #######################################################
+    # Calc uv ccords
+    #######################################################
+    print( 'Calc uv ccords' )
+
+    wallInfo = calc_uv_coords(pto_filename, wallInfo)
+
+    return (True, wallInfo)
+    
+
+#####################################
+
+def calc_uv_coords_using_grid(wallInfo):
+
+    #######################################################
+    # Extract the following attributes for the following image types:
+    # - overviewImageInfo: imageWidth, imageHeight
+    # - imageInfo: imageIndex, imageWidth, imageHeight, imageFileName
+    #######################################################
+
+    print( 'Extract wall images info' )
+
+    # wallInfo = extract_images_info_from_pto_file(wallInfo, pto_filename)
+    (imagesInfo, canvas_width_in_pixels, canvas_height_in_pixels) = calc_images_coords_normalized()
+    
+    # TBD
+    
+    return wallInfo
 
 #####################################
 
@@ -74,80 +112,103 @@ if __name__ == '__main__':
                         default="/tmp/tmp1/mainHouse/3543_W18_shimi_mainHouse.json",
                         help="The json filename of the 3d model attributes")
 
+    # FixME this parameter is not active currently
     parser.add_argument("--out_dir",
                         type=str,
                         default="/tmp/tmp1",
                         help="The output directory name for the materials planes attributes")
 
     args = parser.parse_args()
-    print( 'args', args )
+    # print( 'args', args )
+    # sys.exit()
 
-    threed_model = parse_3d_model_json_file()
-    # print( 'threed_model', threed_model )
 
-    vertices = threed_model['vertices']
-    # print( 'vertices', vertices )
-    print( 'len(vertices)', len(vertices) )
+    #######################################################
+    # Populate walls info
+    #######################################################
+    print( 'Populate walls info' )
 
-    verticeVals = vertices[0]['values']
-    # print( 'verticeVals', verticeVals )
-    print( 'len(verticeVals)', len(verticeVals) )
+    wallsInfo = populateWallsInfo(args.threed_model_json_filename)
 
-    connectivity = threed_model['connectivity']
-    # print( 'connectivity', connectivity )
-    print( 'len(connectivity)', len(connectivity) )
+    for wallInfo in wallsInfo.values():
 
-    face_indices = connectivity[0]['indices']
-    # print( 'face_indices', face_indices )
-    print( 'len(face_indices)', len(face_indices) )
+        print( 'Doing wallInfo.materialName', wallInfo.materialName )
 
-    face_uValues = connectivity[0]['uValues']
-    # print( 'face_uValues', face_uValues )
-    # print( 'len(face_uValues)', len(face_uValues) )
+        #######################################################
+        # Calculate wall info
+        #######################################################
 
-    face_vValues = connectivity[0]['vValues']
-    # print( 'face_vValues', face_vValues )
-    # print( 'len(face_vValues)', len(face_vValues) )
+        top_dir = '/home/avner/avner/constructionOverlay/data/3543_W18_shimi/mainHouse'
+        rel_dir = os.path.dirname(wallInfo.materialName)
+        abs_dir = '%s/%s' % (top_dir, rel_dir)
+        # print( 'rel_dir', rel_dir )
+        
+        do_calc_uv_coords_using_hugin = True
 
-    face_materialIndices = connectivity[0]['materialIndices']
-    # print( 'face_materialIndices', face_materialIndices )
-    print( 'len(face_materialIndices)', len(face_materialIndices) )
+        if do_calc_uv_coords_using_hugin:
+            print( 'Calculate uv coords using Hugin' )
+            (retval, wallInfo) = calc_uv_coords_using_hugin(wallInfo, abs_dir)
+            if not retval:
+                print( 'Failed to calc wall info. Continue to next wall.' )
+                continue
+        else:
+            print( 'Calculate uv coords using Grid' )
+            (retval, wallInfo) = calc_uv_coords_using_grid(wallInfo, abs_dir)
+            
+        
+        #######################################################
+        # Save intermediate wall info to pickle file
+        #######################################################
 
-    face_materialNames = connectivity[0]['materialNames']
-    # print( 'face_materialNames', face_materialNames )
-    # print( 'len(face_materialNames)', len(face_materialNames) )
+        json_wall_attributes_filename = '%s/%s' % (abs_dir, 'wall_image_attributes.json')
+        (filename_without_extension, filename_suffix) = os.path.splitext(json_wall_attributes_filename)
 
-    wallsInfo = {}
-    for index1, materialIndex in enumerate(face_materialIndices):
-        print( 'materialIndex', materialIndex )
+        pickle_wall_attributes_filename = '%s/%s' % (abs_dir, 'wall_image_attributes.pickle')
 
-        if (materialIndex != -1):
-            wallInfo = WallInfo()
-            if (materialIndex not in wallsInfo):
-                wallInfo.materialIndex = materialIndex
-                wallInfo.materialName = face_materialNames[index1]
-            else:
-                wallInfo = wallsInfo[materialIndex]
+        with open(json_wall_attributes_filename, 'w') as outfile:
+            json.dump(wallInfo, outfile, cls=MyJsonEncoder, sort_keys=True, indent=4, separators=(',', ': '))
 
-            # fill the point3d, and uvCoord into for the face vertex
-            faceVertex = calcFaceAttributes(index1, face_indices, verticeVals, face_uValues, face_vValues)
+        # print( 'json_wall_attributes_filename', json_wall_attributes_filename )
+        # print( 'wallInfo.faces', wallInfo.faces )
+        # sys.exit()
 
-            # populate the face vertex info (point3d, and uvCoord) into wallInfo.wallImageInfo
-            if (faceVertex.uvCoords == Point2d(0,0)):
-                wallInfo.wallImageInfo.tlPoint = faceVertex
-            elif (faceVertex.uvCoords == Point2d(1,0)):
-                wallInfo.wallImageInfo.trPoint = faceVertex
-            elif (faceVertex.uvCoords == Point2d(0,1)):
-                wallInfo.wallImageInfo.blPoint = faceVertex
-            elif (faceVertex.uvCoords == Point2d(1,1)):
-                wallInfo.wallImageInfo.brPoint = faceVertex
-            else:
-                print( 'faceVertex', faceVertex )
-                raise AssertionError("Invalid uvCoords")
+        with open(pickle_wall_attributes_filename, 'w') as outfile:
+            pickle.dump(wallInfo, outfile)
 
-            print( 'wallInfo', wallInfo )
-            wallsInfo[materialIndex] = wallInfo
 
+        #######################################################
+        # Calc 3d points
+        #######################################################
+        print( 'Calc 3d points' )
+
+        # TBD
+        wallInfo = calc_points3d_coords(wallInfo)
+        # print( 'wallInfo', wallInfo )
+        # sys.exit()
+
+        # calc point3d based on barycentric
+        # store in wall_image_attributes1.json
+        # sys.exit()
+
+        #######################################################
+        # Create topology
+        #######################################################
+        print( 'Create topology' )
+
+        wall_attributes_filename2 = '%s/%s' % (abs_dir, 'wall_image_attributes2.json')
+
+        # with open(pickle_wall_attributes_filename, 'r') as infile:
+        #     wallInfo = pickle.load(infile)
+
+        wallInfo = createTopology(wallInfo)
+
+        #######################################################
+        # Save wall attributes to file
+        #######################################################
+        print( 'Save wall attributes to file: ', wall_attributes_filename2 )
+
+        with open(wall_attributes_filename2, 'w') as outfile:
+            json.dump(wallInfo, outfile, cls=MyJsonEncoder, sort_keys=True, indent=4, separators=(',', ': '))
 
 
     # materialInfo === wallInfo

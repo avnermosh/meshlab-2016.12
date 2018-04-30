@@ -439,8 +439,26 @@ bool JSONIOPlugin::save(const QString & formatName,const QString & fileName, Mes
 					{
 						while (cm.face[k].IsD()) k++;
                   CMeshO::FaceType & f1 = cm1.face[k];
+
                   int faceMaterialIndex = f1.WT(0).n();
-						os << faceMaterialIndex;
+
+                  std::cout << "k: " << k << std::endl;
+                  std::cout << "f1.WT(0).n(), f1.WT(1).n(), f1.WT(2).n(): "
+                            << f1.WT(0).n() << " "
+                            << f1.WT(1).n() << " "
+                            << f1.WT(2).n() << " "
+                            << std::endl;
+                  if(faceMaterialIndex>= 0)
+                  {
+                      const char* faceMaterialName = m.cm.textures[faceMaterialIndex].c_str();
+                      std::cout << "faceMaterialName: " << faceMaterialName << std::endl;
+                  }
+                  else
+                  {
+                      std::cout << "faceMaterialName: NA" << std::endl;
+                  }
+
+                  os << faceMaterialIndex;
 						c++;
 						k++;
 					}
@@ -449,6 +467,23 @@ bool JSONIOPlugin::save(const QString & formatName,const QString & fileName, Mes
 						while (cm.face[k].IsD()) k++;
                   CMeshO::FaceType & f1 = cm1.face[k];
                   int faceMaterialIndex = f1.WT(0).n();
+
+                  std::cout << "k: " << k << std::endl;
+                  std::cout << "f1.WT(0).n(), f1.WT(1).n(), f1.WT(2).n(): "
+                            << f1.WT(0).n() << " "
+                            << f1.WT(1).n() << " "
+                            << f1.WT(2).n() << " "
+                            << std::endl;
+                  if(faceMaterialIndex>= 0)
+                  {
+                      const char* faceMaterialName = m.cm.textures[faceMaterialIndex].c_str();
+                      std::cout << "faceMaterialName: " << faceMaterialName << std::endl;
+                  }
+                  else
+                  {
+                      std::cout << "faceMaterialName: NA" << std::endl;
+                  }
+
 						os << ", " << faceMaterialIndex;
 						k++;
 					}
@@ -461,7 +496,6 @@ bool JSONIOPlugin::save(const QString & formatName,const QString & fileName, Mes
 				}
 			}
 		}
-		// os << "      ]," << std::endl;
 		os << "      ]," << std::endl;
 
 
