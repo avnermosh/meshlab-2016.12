@@ -6,7 +6,7 @@ parse 3543_W18_shimi_mainHouse.json
 For each materialIndex (maps to materialName, e.g. room1/wall1/wall_fused.jpg)
  - create file materialName.json, e.g. /tmp/tmp1/wall1_image_attributes.json
  - for materialIndex populate point3d, uvCoords, for vertices of materialIndex
- - call calcAttributesOf3dModelImages.py to calc attributes of images of the materialIndex
+ - call calcMaterialPlaneImageAttributesViaHugin.py to calc attributes of images of the materialIndex
 
 usage example:
 python ~/avner/meshlab/branches/meshlab-2016.12/scripts/calcMaterialPlaneAttributes.py \
@@ -25,10 +25,10 @@ from json import JSONEncoder
 from imageInfo import WallInfo, ImageInfo, Face, Point, Point2d, MyJsonEncoder
 import re
 import pickle
-from calcAttributesOf3dModelImages import extract_images_info_from_pto_file, calc_uv_coords, calc_points3d_coords
-from calcTopologyOf3dModelImages import createTopology
-from calcAttributesOf3dModel import calcFaceAttributes, populateWallsInfo
-from create_overview_image_and_calc_uv_coords_using_grid import calc_images_coords_normalized, mosaic_images
+from calcMaterialPlaneImageAttributesViaHugin import hugin_extract_images_info_from_pto_file, hugin_calc_uv_coords, calc_points3d_coords
+from calcMaterialPlaneImageAttributesViaGrid import grid_extract_images_info_from_dir, grid_calc_uv_coords, create_overview_image
+from calcPlaneImagesTopology import createTopology
+from calc3dModelAttributes import calcFaceAttributes, populateWallsInfo
 
 import os.path
 
@@ -39,12 +39,13 @@ def calc_uv_coords_using_hugin(wallInfo, abs_dir):
     #######################################################
     # Extract the following attributes for the following image types:
     # - overviewImageInfo: imageWidth, imageHeight
-    # - imageInfo: imageIndex, imageWidth, imageHeight, imageFileName
+    # - imageInfo: imageIndex, imageWidth, imageHeight, imageFilename
     #######################################################
 
-    print( 'Extract wall images info' )
+    print( '-----------------------------' )
+    print( 'Extract wall images info using Hugin' )
+    print( '-----------------------------' )
 
-    # pto_filename = '/tmp/wall1.pto'
     pto_filename = '%s/%s' % (abs_dir, 'wall.pto')
     # print( 'pto_filename', pto_filename )
 
@@ -58,7 +59,7 @@ def calc_uv_coords_using_hugin(wallInfo, abs_dir):
         # continue
         return (False, wallInfo)
 
-    wallInfo = extract_images_info_from_pto_file(wallInfo, pto_filename)
+    wallInfo = hugin_extract_images_info_from_pto_file(wallInfo, pto_filename)
 
     # if (wallInfo.materialName == 'room1/wall3/wall_fused.jpg'):
     #     print( 'wallInfo', wallInfo )
@@ -72,28 +73,43 @@ def calc_uv_coords_using_hugin(wallInfo, abs_dir):
     #######################################################
     print( 'Calc uv ccords' )
 
-    wallInfo = calc_uv_coords(pto_filename, wallInfo)
+    wallInfo = hugin_calc_uv_coords(pto_filename, wallInfo)
 
     return (True, wallInfo)
-    
+
 
 #####################################
 
-def calc_uv_coords_using_grid(wallInfo):
+def calc_uv_coords_using_grid(wallInfo, plane_dir):
 
     #######################################################
     # Extract the following attributes for the following image types:
     # - overviewImageInfo: imageWidth, imageHeight
-    # - imageInfo: imageIndex, imageWidth, imageHeight, imageFileName
+    # - imageInfo: imageIndex, imageWidth, imageHeight, imageFilename
     #######################################################
 
-    print( 'Extract wall images info' )
+    print( '-----------------------------' )
+    print( 'Extract wall images info using Grid' )
+    print( '-----------------------------' )
 
-    # wallInfo = extract_images_info_from_pto_file(wallInfo, pto_filename)
-    (imagesInfo, canvas_width_in_pixels, canvas_height_in_pixels) = calc_images_coords_normalized()
-    
-    # TBD
-    
+    # plane_dir = '/home/avner/avner/constructionOverlay/data/2910_w47_shertzer/floor0/wall_1'
+    # /home/avner/avner/constructionOverlay/data/3543_W18_shimi/mainHouse
+    print( 'plane_dir', plane_dir )
+
+    wallInfo = grid_extract_images_info_from_dir(wallInfo, plane_dir)
+
+    image_layout_filename = os.path.join(plane_dir, 'image_layout.json')
+    with open(image_layout_filename, 'r') as infile:
+        image_layout = json.load(infile)
+
+    print( 'image_layout', image_layout )
+
+    wallInfo = grid_calc_uv_coords(wallInfo,
+                                   image_layout['num_images_in_rows'],
+                                   image_layout['overlap_between_rows'],
+                                   image_layout['overlap_between_cols'],
+                                   image_layout['scan_mode'])
+
     return wallInfo
 
 #####################################
@@ -112,6 +128,11 @@ if __name__ == '__main__':
                         default="/tmp/tmp1/mainHouse/3543_W18_shimi_mainHouse.json",
                         help="The json filename of the 3d model attributes")
 
+    parser.add_argument("--dataset_dir",
+                        type=str,
+                        default="/home/avner/avner/constructionOverlay/data/3543_W18_shimi/mainHouse",
+                        help="The dataset directory")
+
     # FixME this parameter is not active currently
     parser.add_argument("--out_dir",
                         type=str,
@@ -126,44 +147,81 @@ if __name__ == '__main__':
     #######################################################
     # Populate walls info
     #######################################################
+
+    print( '-----------------------------' )
     print( 'Populate walls info' )
+    print( '-----------------------------' )
 
     wallsInfo = populateWallsInfo(args.threed_model_json_filename)
 
-    for wallInfo in wallsInfo.values():
+    #######################################################
+    # Calculate walls info
+    #######################################################
+
+    # for wallInfo in wallsInfo.values():
+    for index, wallInfo in enumerate(wallsInfo.values()):
 
         print( 'Doing wallInfo.materialName', wallInfo.materialName )
+
+        print( 'index', index )
+        # if index == 1:
+        #     print( 'Done Calculate wall info' )
+        #     sys.exit()
 
         #######################################################
         # Calculate wall info
         #######################################################
 
-        top_dir = '/home/avner/avner/constructionOverlay/data/3543_W18_shimi/mainHouse'
-        rel_dir = os.path.dirname(wallInfo.materialName)
-        abs_dir = '%s/%s' % (top_dir, rel_dir)
+        print( 'wallInfo', wallInfo )
+
+        # rel_dir = os.path.dirname(wallInfo.materialName)
         # print( 'rel_dir', rel_dir )
-        
+        # plane_dir = '%s/%s' % (args.dataset_dir, rel_dir)
+
+        # change directory to dataset dir
+        os.chdir( args.dataset_dir )
+
+        # set plane_dir (relative dir)
+        plane_dir = os.path.dirname(wallInfo.materialName)
+
+        print( 'plane_dir1', plane_dir )
+        # omit the "./" at the beginning of the plane_dir
+        plane_dir = re.sub(r"\.\/", '', plane_dir)
+        print( 'plane_dir2', plane_dir )
+
         do_calc_uv_coords_using_hugin = True
+        do_calc_uv_coords_using_hugin = False
 
         if do_calc_uv_coords_using_hugin:
+            print( '-----------------------------' )
             print( 'Calculate uv coords using Hugin' )
-            (retval, wallInfo) = calc_uv_coords_using_hugin(wallInfo, abs_dir)
+            print( '-----------------------------' )
+
+            (retval, wallInfo) = calc_uv_coords_using_hugin(wallInfo, plane_dir)
             if not retval:
                 print( 'Failed to calc wall info. Continue to next wall.' )
                 continue
         else:
+            print( '-----------------------------' )
             print( 'Calculate uv coords using Grid' )
-            (retval, wallInfo) = calc_uv_coords_using_grid(wallInfo, abs_dir)
-            
+            print( '-----------------------------' )
+
+            wallInfo = calc_uv_coords_using_grid(wallInfo, plane_dir)
+
+            print( '-----------------------------' )
+            print( 'Create overview image' )
+            print( '-----------------------------' )
+
+            create_overview_image(wallInfo)
         
         #######################################################
         # Save intermediate wall info to pickle file
         #######################################################
 
-        json_wall_attributes_filename = '%s/%s' % (abs_dir, 'wall_image_attributes.json')
+        json_wall_attributes_filename = '%s/%s' % (plane_dir, 'wall_image_attributes.json')
         (filename_without_extension, filename_suffix) = os.path.splitext(json_wall_attributes_filename)
 
-        pickle_wall_attributes_filename = '%s/%s' % (abs_dir, 'wall_image_attributes.pickle')
+        pickle_wall_attributes_filename = '%s/%s' % (plane_dir, 'wall_image_attributes.pickle')
 
         with open(json_wall_attributes_filename, 'w') as outfile:
             json.dump(wallInfo, outfile, cls=MyJsonEncoder, sort_keys=True, indent=4, separators=(',', ': '))
@@ -179,7 +237,10 @@ if __name__ == '__main__':
         #######################################################
         # Calc 3d points
         #######################################################
+
+        print( '-----------------------------' )
         print( 'Calc 3d points' )
+        print( '-----------------------------' )
 
         # TBD
         wallInfo = calc_points3d_coords(wallInfo)
@@ -193,14 +254,19 @@ if __name__ == '__main__':
         #######################################################
         # Create topology
         #######################################################
-        print( 'Create topology' )
 
-        wall_attributes_filename2 = '%s/%s' % (abs_dir, 'wall_image_attributes2.json')
+        print( '-----------------------------' )
+        print( 'Create topology' )
+        print( '-----------------------------' )
+
+        wall_attributes_filename2 = '%s/%s' % (plane_dir, 'wall_image_attributes2.json')
 
         # with open(pickle_wall_attributes_filename, 'r') as infile:
         #     wallInfo = pickle.load(infile)
 
-        wallInfo = createTopology(wallInfo)
+        # FixME:
+        # disable topology for now, due to assertion error (where one of the image centers vectors is a dot)
+        # wallInfo = createTopology(wallInfo)
 
         #######################################################
         # Save wall attributes to file
@@ -216,6 +282,6 @@ if __name__ == '__main__':
     # For each materialIndex (maps to materialName, e.g. room1/wall1/wall_fused.jpg)
     #  - create file materialName.json, e.g. /tmp/tmp1/wall1_image_attributes.json
     #  - for materialIndex populate point3d, uvCoords, for vertices of materialIndex
-    #  - call calcAttributesOf3dModelImages.py to calc attributes of images of the materialIndex
+    #  - call calcMaterialPlaneImageAttributesViaHugin.py to calc attributes of images of the materialIndex
 
     print( 'END Main' )

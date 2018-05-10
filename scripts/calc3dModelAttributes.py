@@ -5,8 +5,8 @@
 parse 3543_W18_shimi_mainHouse.json
 For each materialIndex (maps to materialName, e.g. room1/wall1/wall_fused.jpg)
  - create file materialName.json, e.g. /tmp/tmp1/wall1_image_attributes.json
- - for materialIndex populate point3d, uvCoords, for vertices of materialIndex
- - call calcAttributesOf3dModelImages.py to calc attributes of images of the materialIndex
+ - for materialIndex populate point3d, uvCoordsNormalized, for vertices of materialIndex
+ - call calcMaterialPlaneImageAttributesViaHugin.py to calc attributes of images of the materialIndex
 
 usage example:
 python ~/avner/meshlab/branches/meshlab-2016.12/scripts/calcMaterialPlaneAttributes.py \
@@ -45,12 +45,12 @@ def calcFaceAttributes(index_in_face_materialIndices, face_indices, verticeVals,
     numCoordsPerVertex = 3
     faceVertexIndex = index_in_face_materialIndices * numVerticesPerFace
 
-    print( 'index_in_face_materialIndices', index_in_face_materialIndices )
+    # print( 'index_in_face_materialIndices', index_in_face_materialIndices )
 
     face = Face()
 
-    if (index_in_face_materialIndices==4):
-        print( 'verticeVals', verticeVals )
+    # if (index_in_face_materialIndices==4):
+    #     print( 'verticeVals', verticeVals )
 
     face.vertices = []
     for i in range(0, numVerticesPerFace):
@@ -71,19 +71,19 @@ def calcFaceAttributes(index_in_face_materialIndices, face_indices, verticeVals,
         # (no need to flip y to match with threejs y coordinate system because face_vValues
         # is already coming from the threejs coordinate system)
         faceVertex.uvCoordsNormalized.y = face_vValues[faceVertexIndex]
-        
-        # faceVertex.imageCoords = TBD
-        # faceVertex.imageCoords is filled later on by calcAttributesOf3dModelImages.py
 
-        if (index_in_face_materialIndices==4) or (index_in_face_materialIndices==5):
-            print( 'faceVertexIndex', faceVertexIndex )
-            print( 'vertexIndex', vertexIndex )
-            print( 'faceVertex.worldcoords.x', faceVertex.worldcoords.x )
-            print( 'faceVertex.worldcoords.y', faceVertex.worldcoords.y )
-            print( 'faceVertex.worldcoords.z', faceVertex.worldcoords.z )
-            print( 'faceVertex.uvCoordsNormalized.x', faceVertex.uvCoordsNormalized.x )
-            print( 'faceVertex.uvCoordsNormalized.y', faceVertex.uvCoordsNormalized.y )
-            
+        # faceVertex.imageCoords = TBD
+        # faceVertex.imageCoords is filled later on by calcMaterialPlaneImageAttributesViaHugin.py
+
+        # if (index_in_face_materialIndices==4) or (index_in_face_materialIndices==5):
+        #     print( 'faceVertexIndex', faceVertexIndex )
+        #     print( 'vertexIndex', vertexIndex )
+        #     print( 'faceVertex.worldcoords.x', faceVertex.worldcoords.x )
+        #     print( 'faceVertex.worldcoords.y', faceVertex.worldcoords.y )
+        #     print( 'faceVertex.worldcoords.z', faceVertex.worldcoords.z )
+        #     print( 'faceVertex.uvCoordsNormalized.x', faceVertex.uvCoordsNormalized.x )
+        #     print( 'faceVertex.uvCoordsNormalized.y', faceVertex.uvCoordsNormalized.y )
+
         face.vertices.append(faceVertex)
 
         faceVertexIndex += 1
@@ -154,18 +154,19 @@ def populateWallsInfo(threed_model_json_filename):
 
             for index2, faceVertex in enumerate(face.vertices):
 
+                # print( 'faceVertex1', faceVertex )
                 # map the 3 face vertices into the 4 corner points of overviewImageInfo
-                if (faceVertex.uvCoords == Point2d(0,0)):
+                if (faceVertex.uvCoordsNormalized == Point2d(0,0)):
                     wallInfo.overviewImageInfo.tlPoint = faceVertex
-                elif (faceVertex.uvCoords == Point2d(1,0)):
+                elif (faceVertex.uvCoordsNormalized == Point2d(1,0)):
                     wallInfo.overviewImageInfo.trPoint = faceVertex
-                elif (faceVertex.uvCoords == Point2d(0,1)):
+                elif (faceVertex.uvCoordsNormalized == Point2d(0,1)):
                     wallInfo.overviewImageInfo.blPoint = faceVertex
-                elif (faceVertex.uvCoords == Point2d(1,1)):
+                elif (faceVertex.uvCoordsNormalized == Point2d(1,1)):
                     wallInfo.overviewImageInfo.brPoint = faceVertex
                 else:
                     print( 'faceVertex', faceVertex )
-                    raise AssertionError("Invalid uvCoords")
+                    raise AssertionError("Invalid uvCoordsNormalized")
 
             wallsInfo[materialIndex] = wallInfo
             # print( 'wallsInfo[materialIndex].faces', wallsInfo[materialIndex].faces )

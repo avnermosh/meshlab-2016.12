@@ -6,7 +6,7 @@ Calculate attributes of 3d model images:
 - image coords
 - uv coords
 Transform from hugin mosaic
-python ~/avner/meshlab/branches/meshlab-2016.12/scripts/calcAttributesOf3dModelImages.py
+python ~/avner/meshlab/branches/meshlab-2016.12/scripts/calcMaterialPlaneImageAttributesViaHugin.py
  --pto_filename /home/avner/avner/constructionOverlay/data/3543_W18_shimi/mainHouse/room1/wall1/wall.pto
 """
 
@@ -25,7 +25,7 @@ import pickle
 
 #####################################
 
-def extract_images_info_from_pto_file(wallInfo, pto_filename):
+def hugin_extract_images_info_from_pto_file(wallInfo, pto_filename):
     """
     Extract the following attributes for the following images:
     - overviewImageInfo: 
@@ -35,11 +35,11 @@ def extract_images_info_from_pto_file(wallInfo, pto_filename):
       -- imageIndex
       -- imageWidth
       -- imageHeight
-      -- imageFileName
+      -- imageFilename
     """
 
                     
-    print( 'BEG extract_images_info_from_pto_file' )
+    print( 'BEG hugin_extract_images_info_from_pto_file' )
     print( 'pto_filename', pto_filename )
     
     pattern_panorama  = '^p '
@@ -106,14 +106,14 @@ def extract_images_info_from_pto_file(wallInfo, pto_filename):
                     numGroups = match.groups()
                     width = match.group(1)
                     height = match.group(2)
-                    imageFileName = match.group(3)
+                    imageFilename = match.group(3)
 
                     imageInfo = ImageInfo()
                     imageInfo.imageIndex = imageIndex
                     imageIndex += 1
                     imageInfo.imageWidth = int(width)
                     imageInfo.imageHeight = int(height)
-                    imageInfo.imageFileName = imageFileName
+                    imageInfo.imageFilename = imageFilename
                     imagesInfo.append(imageInfo)
 
 
@@ -160,11 +160,13 @@ def clampPointToImageSize(overviewImageInfo, projectedPointOrig):
 
 #####################################
 
+def hugin_calc_uv_coords(pto_filename, wallInfo):
 
-def calc_uv_coords(pto_filename, wallInfo):
+    #######################################################
+    # Calc overviewImageInfo attributes
+    #######################################################
 
     overviewImageInfo = wallInfo.overviewImageInfo
-    imagesInfo = wallInfo.imagesInfo
 
     # update points of overviewImageInfo with the imageCoords
     overviewImageInfo.tlPoint.imageCoords.x = 0
@@ -185,6 +187,8 @@ def calc_uv_coords(pto_filename, wallInfo):
     #######################################################
     # update points of imageInfo with the imageCoords
     #######################################################
+
+    imagesInfo = wallInfo.imagesInfo
 
     imagePoints = ''
     for imageInfo in imagesInfo:
@@ -255,8 +259,10 @@ def calc_uv_coords(pto_filename, wallInfo):
 
         point.uvCoordsNormalized.x = round(point.uvCoords.x / overviewImageInfo.imageWidth, 2)
 
-        # flip y to match with threejs y coordinate system
-        point.uvCoordsNormalized.y = (1-(round(point.uvCoords.y / overviewImageInfo.imageHeight, 2)))
+        # # flip y to match with threejs y coordinate system
+        # point.uvCoordsNormalized.y = (1-(round(point.uvCoords.y / overviewImageInfo.imageHeight, 2)))
+
+        point.uvCoordsNormalized.y = round(point.uvCoords.y / overviewImageInfo.imageHeight, 2)
         print( 'point.uvCoordsNormalized.y', point.uvCoordsNormalized.y )
 
 
@@ -430,9 +436,10 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    wallInfo = extract_images_info_from_pto_file(args.pto_filename)
+    wallInfo = WallInfo()
+    wallInfo = hugin_extract_images_info_from_pto_file(args.pto_filename, wallInfo)
 
-    wallInfo = calc_uv_coords(args.pto_filename, wallInfo)
+    wallInfo = hugin_calc_uv_coords(args.pto_filename, wallInfo)
 
     # M-x json-pretty-print-buffer
     json_wall_attributes_filename = args.wall_attributes_filename

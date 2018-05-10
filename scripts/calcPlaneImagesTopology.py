@@ -64,6 +64,10 @@ def createTopology(wallInfo):
     imagesInfo = wallInfo.imagesInfo
 
     # https://stackoverflow.com/questions/27150990/python-itertools-combinations-how-to-obtain-the-indices-of-the-combined-numbers
+
+    # Loop over all image pair combinations. For each image pair:
+    # - Calc the angle of the vector between center points
+    
     indexPairs = list((i,j) for ((i,_),(j,_)) in itertools.combinations(enumerate(imagesInfo), 2))
     for indexPair in indexPairs:
         imageIndex0 = imagesInfo[indexPair[0]].imageIndex
